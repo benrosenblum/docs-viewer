@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.Title}} · {{or .Vault .Site}}</title>
+<script src="/_/static/theme.js"></script>
+<link rel="stylesheet" href="{{.Theme}}">
+<link rel="stylesheet" href="/_/static/viewer.css">
+<link rel="stylesheet" href="/_/static/highlight.css">
+<link rel="stylesheet" href="{{.AssetBase}}/katex/katex.min.css">
+{{- if eq .Kind "apispec"}}
+<script defer src="{{.AssetBase}}/redoc/redoc.standalone.js"></script>
+{{- end}}
+<script defer src="/_/static/viewer.js"></script>
+{{- if eq .Kind "graph"}}
+<script defer src="/_/static/graph.js"></script>
+{{- end}}
+</head>
+<body data-kind="{{.Kind}}" data-path="{{.Path}}" data-asset-base="{{.AssetBase}}" data-vault="{{.Vault}}" data-spec-vault="{{.SpecVault}}">
+<div class="app">
+<aside id="left" class="sidebar sidebar-left" aria-label="Files">
+<div class="sidebar-header">
+<a class="vault-name" href="/" title="{{.Site}}">{{.Site}}</a>
+<button type="button" class="icon-button" data-action="switcher" title="Quick switcher (Ctrl+O)" aria-label="Quick switcher">{{icon "switcher"}}</button>
+<button type="button" class="icon-button" data-action="search" title="Search (Ctrl+Shift+F)" aria-label="Search">{{icon "search"}}</button>
+<a class="icon-button" data-action="graph" href="/_/graph" title="Graph view (Ctrl+G)" aria-label="Graph view">{{icon "graph"}}</a>
+<button type="button" class="icon-button" data-action="collapse-all" title="Collapse all folders" aria-label="Collapse all folders">{{icon "collapse"}}</button>
+<button type="button" class="icon-button" data-action="theme" title="Toggle light and dark theme" aria-label="Toggle theme">{{icon "sun"}}{{icon "moon"}}</button>
+</div>
+<nav id="file-tree" class="file-tree">{{template "tree" .Tree}}</nav>
+</aside>
+<div id="left-resizer" class="resizer" aria-hidden="true"></div>
+<main id="main" class="main">
+<header class="view-header">
+<button type="button" class="icon-button" data-action="toggle-left" title="Toggle file tree" aria-label="Toggle file tree">{{icon "sidebar-left"}}</button>
+<nav class="breadcrumbs" aria-label="Location">
+{{- range $i, $c := .Crumbs}}{{if $i}}<span class="sep">/</span>{{end}}{{if $c.URL}}<a href="{{$c.URL}}">{{$c.Name}}</a>{{else}}<span class="current">{{$c.Name}}</span>{{end}}{{end}}
+{{- if not .Crumbs}}<span class="current">{{.Title}}</span>{{end -}}
+</nav>
+{{- if .Outside}}
+<span class="badge badge-outside" title="This repository file is outside {{range $i, $v := .Vaults}}{{if $i}} and {{end}}{{$v}}/{{end}}">Outside vault</span>
+{{- end}}
+{{- with .Spec}}
+<nav class="segmented" aria-label="Reference or source"><a href="{{.ReferenceURL}}"{{if not .Source}} aria-current="page"{{end}}>Reference</a><a href="{{.SourceURL}}"{{if .Source}} aria-current="page"{{end}}>Source</a></nav>
+{{- end}}
+{{- with .Git}}
+<div class="diff-controls">
+{{- if .ShowToggle}}
+<nav class="segmented" aria-label="Page or changes"><a href="{{.PageURL}}"{{if not .Diff}} aria-current="page"{{end}}>Page</a><a href="{{.ChangesURL}}"{{if .Diff}} aria-current="page"{{end}}>Changes</a></nav>
+{{- end}}
+{{- if and .Diff .Diff.Note}}
+<nav class="segmented" aria-label="Diff form"><a href="{{.Diff.RenderedURL}}"{{if not .Diff.Source}} aria-current="page"{{end}}>Rendered</a><a href="{{.Diff.SourceURL}}"{{if .Diff.Source}} aria-current="page"{{end}}>Source</a></nav>
+{{- end}}
+<button type="button" class="diff-picker-button" data-action="diff-picker" data-path="{{.Path}}" data-base="{{.Base}}"{{if and .Diff .Diff.Source .Diff.Note}} data-as="source"{{end}} aria-haspopup="listbox" aria-expanded="false" title="Compare with an earlier version">{{icon "history"}}<span>{{.Label}}</span></button>
+</div>
+{{- end}}
+<span id="live-status" class="live-status" title="Live reload"></span>
+<button type="button" class="icon-button" data-action="toggle-right" title="Toggle outline and backlinks" aria-label="Toggle outline and backlinks">{{icon "sidebar-right"}}</button>
+</header>
+<div id="view" class="view">
+{{- if eq .Kind "note"}}
+<article id="content" class="content markdown-rendered">
+<h1 class="inline-title">{{.Name}}</h1>
+{{- template "properties" .Doc}}
+<div class="markdown-body">{{.Body}}</div>
+</article>
+{{- else if eq .Kind "source"}}
+<article id="content" class="content content-wide">
+<h1 class="inline-title">{{.Name}}</h1>
+<div class="source-view" data-lang="{{.Source.Lang}}">
+<div class="source-toolbar"><span class="source-meta">{{.Source.Meta}}</span><a href="?raw=1">Raw</a></div>
+{{.Body}}
+</div>
+</article>
+{{- else if eq .Kind "apispec"}}
+<article id="content" class="content content-full">
+<div id="redoc" class="apispec" data-spec="{{.Spec.RawURL}}"><p class="pane-empty">Loading the API reference.</p></div>
+</article>
+{{- else if eq .Kind "diff"}}
+<article id="content" class="content diff-view{{if .Diff.Source}} content-wide{{else}} markdown-rendered{{end}}">
+<h1 class="inline-title">{{.Name}}</h1>
+{{- if .Diff.Message}}
+<p class="diff-message" role="status">{{.Diff.Message}}</p>
+{{- end}}
+{{- if .Diff.Source}}
+{{- if .Diff.Table}}
+<div class="source-view diff-source">{{.Diff.Table}}</div>
+{{- end}}
+{{- else if .Doc}}
+{{- if .Diff.PropertiesChanged}}<div class="diff-properties diff-changed">{{template "properties" .Doc}}</div>{{else}}{{template "properties" .Doc}}{{end}}
+<div class="markdown-body">{{.Body}}</div>
+{{- end}}
+</article>
+{{- else if eq .Kind "folder"}}
+<article id="content" class="content">
+<h1 class="inline-title">{{.Name}}</h1>
+<ul class="folder-list">
+{{- range .Folder}}
+<li class="folder-entry{{if .Dir}} is-folder{{end}}"><a href="{{.URL}}"{{if .Note}} class="internal-link" data-path="{{.Path}}"{{end}}>{{.Name}}{{if .Dir}}/{{end}}</a></li>
+{{- else}}
+<li class="folder-entry is-empty">This folder is empty.</li>
+{{- end}}
+</ul>
+</article>
+{{- else if eq .Kind "search"}}
+<article id="content" class="content">
+<h1 class="inline-title">Search</h1>
+<form class="search-form" action="/_/search" method="get" role="search">
+<input type="search" name="q" value="{{.Search.Query}}" placeholder="Search notes" aria-label="Search notes" autocomplete="off">
+</form>
+{{- template "results" .Search}}
+</article>
+{{- else if eq .Kind "graph"}}
+<div class="graph-view" id="graph-view"><canvas id="graph-canvas"></canvas><div class="graph-controls"></div></div>
+{{- else}}
+<article id="content" class="content">
+<h1 class="inline-title">Not found</h1>
+{{- if .Body}}{{.Body}}{{else}}
+<p>No readable file exists at this location. Use the file tree, the quick switcher, or <a href="/_/search">search</a>.</p>
+{{- end}}
+</article>
+{{- end}}
+</div>
+</main>
+<div id="right-resizer" class="resizer" aria-hidden="true"></div>
+<aside id="right" class="sidebar sidebar-right" aria-label="Outline and backlinks">
+<section class="pane outline"><h2 class="pane-title">Outline</h2>
+{{- if .Outline}}
+<ul class="outline-list">
+{{- range .Outline}}
+<li class="outline-item" data-level="{{.Level}}"><a href="#{{.ID}}">{{.Text}}</a></li>
+{{- end}}
+</ul>
+{{- else}}
+<p class="pane-empty">No headings</p>
+{{- end}}
+</section>
+<section class="pane backlinks"><h2 class="pane-title">Linked mentions <span class="count">{{len .Backlinks}}</span></h2>
+{{- range .Backlinks}}
+<div class="backlink-group"><a class="internal-link" href="{{.URL}}" data-path="{{.Path}}">{{.Name}}</a>
+{{- if .Contexts}}
+<ul>
+{{- range .Contexts}}
+<li class="backlink-context"><a href="{{.URL}}">{{.Text}}</a></li>
+{{- end}}
+</ul>
+{{- end}}
+</div>
+{{- else}}
+<p class="pane-empty">No backlinks</p>
+{{- end}}
+</section>
+</aside>
+</div>
+</body>
+</html>
+{{- define "tree"}}
+<ul class="tree">
+{{- range .Children}}
+{{- if .Dir}}
+<li class="tree-folder" data-path="{{.Path}}"{{if .Dirty}} data-git-dirty{{end}}><details{{if .Open}} open{{end}}><summary class="tree-item"><span class="tree-name">{{.Name}}</span>{{if .Dirty}}<span class="tree-git-dot" title="Contains changed files"></span>{{end}}</summary>{{template "tree" .}}</details></li>
+{{- else}}
+<li class="tree-file{{if not .Note}} is-attachment{{end}}"><a class="tree-item{{if .Active}} is-active{{end}}" href="{{.URL}}" data-path="{{.Path}}"{{if .Active}} aria-current="page"{{end}}{{if .Git}} data-git="{{.Git}}"{{end}}><span class="tree-name">{{.Name}}</span>{{if .Ext}}<span class="tree-ext">{{.Ext}}</span>{{end}}{{if .Git}}<span class="tree-git" title="{{if eq .Git "M"}}Modified{{else if eq .Git "A"}}Added{{else}}Untracked{{end}}">{{.Git}}</span>{{end}}</a></li>
+{{- end}}
+{{- end}}
+</ul>
+{{- end}}
+{{- define "properties"}}
+{{- if or .Properties .PropertiesError}}
+<section class="properties"><h2 class="properties-title">Properties</h2>
+{{- if .Properties}}
+<dl class="property-list">
+{{- range .Properties}}
+<div class="property" data-key="{{.Key}}"><dt>{{.Key}}</dt><dd>
+{{- $key := .Key}}{{$list := .List}}
+{{- range .Values}}
+{{- if .Link}}<a class="internal-link{{if .Unresolved}} is-unresolved{{end}}" href="{{.Href}}" data-path="{{.Path}}">{{.Text}}</a>
+{{- else if or (eq $key "tags") (eq $key "tag")}}<a class="tag" href="/_/search?q={{printf "tag:#%s" .Text | urlquery}}">{{.Text}}</a>
+{{- else if $list}}<span class="pill">{{.Text}}</span>
+{{- else}}<span class="property-text">{{.Text}}</span>
+{{- end}}
+{{- end}}
+</dd></div>
+{{- end}}
+</dl>
+{{- end}}
+{{- if .PropertiesError}}
+<p class="properties-error">Invalid properties: {{.PropertiesError}}</p>
+{{- end}}
+</section>
+{{- end}}
+{{- end}}
+{{- define "results"}}
+{{- if .Query}}
+<p class="search-summary">{{.Total}} {{if eq .Total 1}}file{{else}}files{{end}} match{{if .Truncated}}; showing the first {{len .Results}}{{end}}.</p>
+{{- end}}
+<ol class="search-results">
+{{- range .Results}}
+<li class="search-result"><a class="search-result-title internal-link" href="{{.URL}}" data-path="{{.Path}}">{{.Name}}</a><span class="search-result-path">{{.Path}}</span>
+{{- if .Matches}}
+<ul class="search-matches">
+{{- range .Matches}}
+<li class="search-match"><a href="{{.URL}}"><span class="search-line">{{.Line}}</span>{{.Text}}</a></li>
+{{- end}}
+</ul>
+{{- end}}
+</li>
+{{- end}}
+</ol>
+{{- end}}

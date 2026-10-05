@@ -1,0 +1,617 @@
+openapi: 3.1.0
+info:
+  title: Docs viewer API
+  version: 1.0.0
+  summary: The JSON routes and the event stream of the docs viewer.
+  description: |
+    The docs viewer is a local, read-only viewer for the Markdown
+    documentation of a repository. Its pages use these routes: the quick
+    switcher reads the index, the search dialog reads the search results,
+    the graph page reads the graph, the base picker reads the history of a
+    file, and each page listens to the event stream for live reload.
+
+    Rules for all routes:
+
+    - The routes only read. No route changes a file or the git state.
+    - The viewer has no sign-in. By default it listens on the loopback
+      address only.
+    - Each route accepts `GET` and `HEAD`. A `HEAD` request gets the
+      headers and no body. Other methods get status 405.
+    - A JSON body has the type `application/json; charset=utf-8`. An error
+      body is plain text.
+    - Each response has `Cache-Control: no-store`.
+    - A **repository path** is the path of a file from the repository
+      root, with `/` between the parts and no `/` at the start, for
+      example `docs/USAGE.md`.
+    - A **note** is a Markdown file in a documentation directory (a
+      vault).
+servers:
+  - url: http://127.0.0.1:7000
+    description: The default address of a local viewer.
+tags:
+  - name: Notes
+    description: The notes of the vaults, search, and the link graph.
+  - name: Git
+    description: The git history of a file.
+  - name: Live reload
+    description: The event stream that tells a page to update.
+paths:
+  /_/api/index:
+    get:
+      operationId: getIndex
+      tags: [Notes]
+      summary: List the notes
+      description: |
+        Returns each note of the vaults with its title, aliases, tags, and
+        headings. The quick switcher uses this list to find a note or a
+        heading. The notes are in the sequence of their paths.
+      responses:
+        '200':
+          description: The vaults and their notes.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Index'
+              example:
+                vaults: [docs, api]
+                notes:
+                  - path: docs/USAGE.md
+                    name: USAGE
+                    title: Usage
+                    aliases: []
+                    tags: []
+                    headings:
+                      - {level: 1, text: Usage, id: usage}
+                      - {level: 2, text: Flags, id: flags}
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
+        '500':
+          $ref: '#/components/responses/IndexFailure'
+  /_/api/search:
+    get:
+      operationId: searchNotes
+      tags: [Notes]
+      summary: Search the notes
+      description: |
+        Returns the notes that agree with each part of the query. Search
+        ignores letter case.
+
+        | Query part | Meaning |
+        |------------|---------|
+        | `word` | The name, the title, an alias, or the text of the note contains the term. |
+        | `"two words"` | The same, for a phrase. |
+        | `tag:#name` | The note has the tag `name` or a tag below it, such as `name/part`. The `#` is optional. |
+        | `path:text` | The path of the note contains the text. |
+        | `file:text` | The name of the note contains the text. |
+
+        The results are in the sequence of their score, highest first. A
+        term in the name adds 20, a term in the title or an alias adds 10,
+        and each occurrence in the text adds 1, to a maximum of 20 for
+        each term. The response has a maximum of 50 notes, and a maximum
+        of 5 lines for each note.
+      parameters:
+        - name: q
+          in: query
+          required: false
+          description: The query. An empty query gives an empty result.
+          schema:
+            type: string
+          examples:
+            terms:
+              summary: Two terms
+              value: theme font
+            phrase:
+              summary: A phrase and a path filter
+              value: '"live reload" path:docs/'
+            tag:
+              summary: A tag
+              value: 'tag:#reference'
+      responses:
+        '200':
+          description: The search results.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResult'
+              example:
+                query: live reload
+                terms: [live, reload]
+                results:
+                  - path: docs/NAVIGATION.md
+                    name: NAVIGATION
+                    title: Navigation
+                    url: /docs/NAVIGATION.md
+                    score: 15
+                    matches:
+                      - line: 96
+                        text: The header shows the live reload status.
+                        url: '/docs/NAVIGATION.md#:~:text=live'
+                total: 1
+                truncated: false
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
+        '500':
+          $ref: '#/components/responses/IndexFailure'
+  /_/api/graph:
+    get:
+      operationId: getGraph
+      tags: [Notes]
+      summary: Get the link graph
+      description: |
+        Returns the graph of the notes. Each note of the vaults is a node.
+        A Markdown file outside the vaults is a node when a note links to
+        it. A wikilink that finds no file is a node of the kind
+        `unresolved`. Files that are not Markdown, such as images, are not
+        nodes.
+
+        A link is in the list one time for each pair of source and target,
+        also when the source note has many links to the target. A note has
+        no link to itself.
+      responses:
+        '200':
+          description: The nodes and the links.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Graph'
+              example:
+                nodes:
+                  - id: docs/README.md
+                    name: README
+                    kind: note
+                    url: /docs/README.md
+                    tags: []
+                    degree: 2
+                  - id: docs/USAGE.md
+                    name: USAGE
+                    kind: note
+                    url: /docs/USAGE.md
+                    tags: []
+                    degree: 1
+                  - id: 'unresolved:roadmap'
+                    name: Roadmap
+                    kind: unresolved
+                    tags: []
+                    degree: 1
+                links:
+                  - {source: docs/README.md, target: docs/USAGE.md}
+                  - {source: docs/README.md, target: 'unresolved:roadmap'}
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
+        '500':
+          $ref: '#/components/responses/IndexFailure'
+  /_/api/history:
+    get:
+      operationId: getHistory
+      tags: [Git]
+      summary: Get the history of a file
+      description: |
+        Returns the commits that changed a file, newest first, with
+        renames followed. The list has a maximum of 100 commits. The base
+        picker of a file page uses it.
+
+        The response also tells the client if it can offer a diff against
+        the main branch. The viewer finds the main branch by name. It uses
+        the first of these branches that exists: the local branch `main`,
+        the local branch `master`, `origin/main`, `origin/master`.
+      parameters:
+        - name: path
+          in: query
+          required: true
+          description: The repository path of a file that the viewer shows.
+          schema:
+            type: string
+          example: docs/USAGE.md
+      responses:
+        '200':
+          description: The branch state and the commits.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/History'
+              example:
+                branch: add-search-filters
+                main: main
+                branchBase: true
+                commits:
+                  - hash: 9f2c1e7a4b3d5c6e8f0a1b2c3d4e5f60718293a4
+                    short: 9f2c1e7
+                    subject: (docs) Describe the search filters
+                    author: A. Writer
+                    date: '2026-09-26T11:44:07-04:00'
+                    path: docs/NAVIGATION.md
+        '404':
+          description: |
+            The viewer has no git access, the `path` parameter is absent
+            or not permitted, or the path is not a file.
+          content:
+            text/plain:
+              schema:
+                type: string
+              example: 404 page not found
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
+        '500':
+          description: |
+            The viewer cannot read the documentation directory, or the git
+            command failed.
+          content:
+            text/plain:
+              schema:
+                type: string
+              example: 'Cannot read the history: git log: signal: killed'
+  /_/events:
+    get:
+      operationId: streamEvents
+      tags: [Live reload]
+      summary: Listen for changes
+      description: |
+        Opens a stream of Server-Sent Events. The connection stays open.
+        Each 500 ms, the viewer compares the state of the vaults and of
+        the open file with the last state that it sent.
+
+        | Event | Sent | Data |
+        |-------|------|------|
+        | `hello` | One time, at the start of the stream. | `HelloEvent` |
+        | `change` | When the file tree or the open page changed. | `ChangeEvent` |
+
+        Each 15 seconds, the stream also has a comment line, `: ping`. A
+        client ignores it.
+
+        ```text
+        event: hello
+        data: {"version":"3f0c9a1b2d4e5f60a1b2c3d4e5f60718"}
+
+        event: change
+        data: {"page":true,"tree":false,"version":"8a1b2c3d4e5f60713f0c9a1b2d4e5f60"}
+
+        : ping
+        ```
+
+        A client does these steps:
+
+        1. On `change`, it gets the current page again. If `tree` is true,
+           it also replaces the file tree.
+        2. After a lost connection, it connects again and compares the
+           `version` of the new `hello` event with the last version. If
+           the two are different, it gets the page again.
+      parameters:
+        - name: path
+          in: query
+          required: false
+          description: |
+            The repository path of the open file. Omit it on a page that
+            is not a file, such as search or the graph. The stream then
+            reports only changes of the file tree.
+          schema:
+            type: string
+          example: docs/USAGE.md
+      responses:
+        '200':
+          description: |
+            The event stream. The `data` field of each event is one JSON
+            object.
+          content:
+            text/event-stream:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/HelloEvent'
+                  - $ref: '#/components/schemas/ChangeEvent'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
+        '500':
+          description: |
+            The viewer cannot read the documentation directory, or the
+            connection cannot stream.
+          content:
+            text/plain:
+              schema:
+                type: string
+              example: Streaming is unavailable
+components:
+  responses:
+    MethodNotAllowed:
+      description: The method is not `GET` or `HEAD`.
+      headers:
+        Allow:
+          description: The permitted methods.
+          schema:
+            type: string
+          example: GET, HEAD
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: Method not allowed
+    IndexFailure:
+      description: The viewer cannot read the documentation directory.
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: 'Cannot read the documentation directory: open docs: permission denied'
+  schemas:
+    Index:
+      type: object
+      additionalProperties: false
+      required: [vaults, notes]
+      properties:
+        vaults:
+          description: The vaults, in the sequence of the `-vaults` flag.
+          type: array
+          items:
+            type: string
+        notes:
+          description: The notes of the vaults, in the sequence of their paths.
+          type: array
+          items:
+            $ref: '#/components/schemas/IndexNote'
+    IndexNote:
+      type: object
+      additionalProperties: false
+      required: [path, name, title, aliases, tags, headings]
+      properties:
+        path:
+          description: The repository path of the note.
+          type: string
+        name:
+          description: The file name without the extension.
+          type: string
+        title:
+          description: |
+            The `title` property of the front matter, else the text of the
+            first heading of level 1, else an empty string.
+          type: string
+        aliases:
+          description: The aliases from the front matter.
+          type: array
+          items:
+            type: string
+        tags:
+          description: |
+            The tags from the front matter, then the tags in the text,
+            without `#` and without duplicates.
+          type: array
+          items:
+            type: string
+        headings:
+          description: The headings of the note, in the sequence of the text.
+          type: array
+          items:
+            $ref: '#/components/schemas/Heading'
+    Heading:
+      type: object
+      additionalProperties: false
+      required: [level, text, id]
+      properties:
+        level:
+          description: The heading level.
+          type: integer
+          minimum: 1
+          maximum: 6
+        text:
+          description: The text of the heading, without formatting.
+          type: string
+        id:
+          description: The anchor of the heading. Use it as the URL fragment.
+          type: string
+    SearchResult:
+      type: object
+      additionalProperties: false
+      required: [query, terms, results, total, truncated]
+      properties:
+        query:
+          description: The query, without spaces at its start and end.
+          type: string
+        terms:
+          description: |
+            The terms and phrases of the query, in lower case. Filters are
+            not in this list. A client marks these texts in the results.
+          type: array
+          items:
+            type: string
+        results:
+          description: The notes that match, to a maximum of 50.
+          type: array
+          maxItems: 50
+          items:
+            $ref: '#/components/schemas/SearchHit'
+        total:
+          description: The number of notes that match.
+          type: integer
+          minimum: 0
+        truncated:
+          description: True when `total` is larger than the number of results.
+          type: boolean
+    SearchHit:
+      type: object
+      additionalProperties: false
+      required: [path, name, title, url, score, matches]
+      properties:
+        path:
+          description: The repository path of the note.
+          type: string
+        name:
+          description: The file name without the extension.
+          type: string
+        title:
+          description: The title of the note, or an empty string.
+          type: string
+        url:
+          description: The URL path of the note page.
+          type: string
+        score:
+          description: The score of the note. A higher score comes first.
+          type: integer
+          minimum: 1
+        matches:
+          description: |
+            The first lines that contain a term, to a maximum of 5. The
+            list is empty when the query has only filters.
+          type: array
+          maxItems: 5
+          items:
+            $ref: '#/components/schemas/SearchMatch'
+    SearchMatch:
+      type: object
+      additionalProperties: false
+      required: [line, text, url]
+      properties:
+        line:
+          description: The line number in the source of the note. The first line is 1.
+          type: integer
+          minimum: 1
+        text:
+          description: The line, without spaces at its start and end.
+          type: string
+        url:
+          description: |
+            The URL of the note with a text fragment (`#:~:text=`) for the
+            term that the line contains.
+          type: string
+    Graph:
+      type: object
+      additionalProperties: false
+      required: [nodes, links]
+      properties:
+        nodes:
+          type: array
+          items:
+            $ref: '#/components/schemas/GraphNode'
+        links:
+          type: array
+          items:
+            $ref: '#/components/schemas/GraphLink'
+    GraphNode:
+      type: object
+      additionalProperties: false
+      required: [id, name, kind, tags, degree]
+      properties:
+        id:
+          description: |
+            The repository path of the file. For an unresolved node,
+            `unresolved:` and the link target in lower case.
+          type: string
+        name:
+          description: |
+            The label. For a file, the name without the extension. When
+            two files have the same name, the label also has the parent
+            folder, such as `guides/setup`. For an unresolved node, the
+            link target as written.
+          type: string
+        kind:
+          description: |
+            `note` is a note of the vaults. `outside` is a Markdown file
+            outside the vaults. `unresolved` is a wikilink that finds no
+            file.
+          type: string
+          enum: [note, outside, unresolved]
+        url:
+          description: The URL path of the page. An unresolved node has no `url`.
+          type: string
+        tags:
+          description: The tags of a note. Empty for the other kinds.
+          type: array
+          items:
+            type: string
+        degree:
+          description: The number of links that start or end at this node.
+          type: integer
+          minimum: 0
+    GraphLink:
+      type: object
+      additionalProperties: false
+      required: [source, target]
+      properties:
+        source:
+          description: The `id` of the note that contains the link.
+          type: string
+        target:
+          description: The `id` of the node that the link goes to.
+          type: string
+    History:
+      type: object
+      additionalProperties: false
+      required: [branch, main, branchBase, commits]
+      properties:
+        branch:
+          description: The current branch. Empty when `HEAD` is detached.
+          type: string
+        main:
+          description: |
+            The name of the main branch, `main` or `master`. Empty when
+            the repository has no such branch.
+          type: string
+        branchBase:
+          description: |
+            True when a diff against the merge base with the main branch
+            is available: the main branch exists, the current branch is a
+            different branch, and the repository has a commit.
+          type: boolean
+        commits:
+          description: The commits that changed the file, newest first.
+          type: array
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/Commit'
+    Commit:
+      type: object
+      additionalProperties: false
+      required: [hash, short, subject, author, date, path]
+      properties:
+        hash:
+          description: The full commit hash.
+          type: string
+          pattern: '^[0-9a-f]{40,64}$'
+        short:
+          description: The short commit hash.
+          type: string
+        subject:
+          description: The first line of the commit message.
+          type: string
+        author:
+          description: The name of the author.
+          type: string
+        date:
+          description: The author date, ISO 8601 with a time zone offset.
+          type: string
+          format: date-time
+        path:
+          description: |
+            The repository path of the file at this commit. It is
+            different from the `path` parameter when a later commit
+            renamed the file.
+          type: string
+    HelloEvent:
+      description: The data of a `hello` event.
+      type: object
+      additionalProperties: false
+      required: [version]
+      properties:
+        version:
+          description: |
+            The current version of the file tree. A client compares it
+            with a later version. It does not read its content.
+          type: string
+    ChangeEvent:
+      description: The data of a `change` event. At least one of `tree` and `page` is true.
+      type: object
+      additionalProperties: false
+      required: [tree, page, version]
+      properties:
+        tree:
+          description: |
+            True when the state of the file tree changed: a file of the
+            vaults was added, removed, or changed, a file outside the
+            vaults that a note uses changed, or the git state changed (a
+            mark, the branch, or `HEAD`). A client replaces the file tree.
+          type: boolean
+        page:
+          description: |
+            True when the open file changed, when its rendered HTML
+            changed, or when its git state changed. A client gets the page
+            again.
+          type: boolean
+        version:
+          description: The new version of the file tree.
+          type: string

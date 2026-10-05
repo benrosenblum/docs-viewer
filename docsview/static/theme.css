@@ -1,0 +1,135 @@
+/*
+ * The default theme. It follows the default theme of Obsidian: muted sidebars
+ * and a purple accent. A theme sets the custom properties that viewer.css
+ * reads, for html[data-theme="light"] and html[data-theme="dark"]. The page
+ * loads the theme first, then viewer.css. docs/THEMES.md lists the properties.
+ */
+
+:root {
+  --font-text: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Ubuntu Sans", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", "SF Mono", Menlo, Consolas, "JetBrains Mono", "Ubuntu Mono", "DejaVu Sans Mono", "Liberation Mono", monospace;
+  --radius-s: 4px;
+  --radius-m: 6px;
+  --radius-l: 10px;
+}
+
+:root,
+html[data-theme="light"] {
+  color-scheme: light;
+  --accent-h: 258;
+  --accent-s: 88%;
+  --accent-l: 66%;
+  --accent: hsl(var(--accent-h) var(--accent-s) var(--accent-l));
+  --accent-text: hsl(var(--accent-h) 70% 54%);
+  --accent-soft: hsl(var(--accent-h) var(--accent-s) var(--accent-l) / 0.12);
+  --accent-softer: hsl(var(--accent-h) var(--accent-s) var(--accent-l) / 0.07);
+  --text-on-accent: #fff;
+
+  --bg-primary: #ffffff;
+  --bg-primary-alt: #fafafa;
+  --bg-secondary: #f6f6f6;
+  --bg-secondary-alt: #efefef;
+  --bg-hover: rgb(0 0 0 / 0.055);
+  --bg-active: rgb(0 0 0 / 0.085);
+  --bg-backdrop: rgb(0 0 0 / 0.22);
+  --border: #e3e3e3;
+  --border-strong: #cfcfcf;
+  --divider: #e0e0e0;
+
+  --text-normal: #222222;
+  --text-muted: #5c5c5c;
+  --text-faint: #999999;
+  --text-error: #d7263d;
+  --text-success: #0a8f43;
+  --text-highlight-bg: rgb(255 208 0 / 0.4);
+  --line-target-bg: hsl(258 88% 66% / 0.13);
+  --text-selection: hsl(var(--accent-h) 80% 60% / 0.2);
+
+  --code-bg: #f5f5f5;
+  --code-inline: #b3325a;
+  --code-text: #3b3b3b;
+  --table-header-bg: #f7f7f7;
+  --table-row-alt: #fbfbfb;
+  --indent-guide: rgb(0 0 0 / 0.1);
+  --scrollbar: rgb(0 0 0 / 0.16);
+  --scrollbar-hover: rgb(0 0 0 / 0.3);
+  --shadow-s: 0 1px 2px rgb(0 0 0 / 0.06), 0 2px 6px rgb(0 0 0 / 0.05);
+  --shadow-l: 0 2px 8px rgb(0 0 0 / 0.07), 0 12px 40px rgb(0 0 0 / 0.14);
+
+  --c-red: rgb(233 49 71);
+  --c-orange: rgb(236 117 0);
+  --c-yellow: rgb(224 172 0);
+  --c-green: rgb(8 185 78);
+  --c-cyan: rgb(0 191 188);
+  --c-blue: rgb(8 109 221);
+  --c-purple: rgb(120 82 238);
+  --c-grey: rgb(140 140 140);
+
+  --graph-line: rgb(0 0 0 / 0.16);
+  --graph-line-highlight: var(--accent);
+  --graph-node: #8c8c8c;
+  --graph-node-outside: var(--c-cyan);
+  --graph-node-unresolved: #c4c4c4;
+  --graph-node-focused: var(--accent);
+  --graph-text: #333333;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --accent-h: 254;
+  --accent-s: 80%;
+  --accent-l: 68%;
+  --accent-text: hsl(var(--accent-h) 90% 76%);
+  --accent-soft: hsl(var(--accent-h) var(--accent-s) var(--accent-l) / 0.16);
+  --accent-softer: hsl(var(--accent-h) var(--accent-s) var(--accent-l) / 0.09);
+
+  --bg-primary: #1e1e1e;
+  --bg-primary-alt: #242424;
+  --bg-secondary: #262626;
+  --bg-secondary-alt: #2e2e2e;
+  --bg-hover: rgb(255 255 255 / 0.06);
+  --bg-active: rgb(255 255 255 / 0.1);
+  --bg-backdrop: rgb(0 0 0 / 0.5);
+  --border: #363636;
+  --border-strong: #474747;
+  --divider: #333333;
+
+  --text-normal: #dadada;
+  --text-muted: #a8a8a8;
+  --text-faint: #6f6f6f;
+  --text-error: #fb464c;
+  --text-success: #44cf6e;
+  --text-highlight-bg: rgb(255 208 0 / 0.3);
+  --line-target-bg: hsl(254 80% 68% / 0.2);
+  --text-selection: hsl(var(--accent-h) 70% 60% / 0.3);
+
+  --code-bg: #262626;
+  --code-inline: #f08aa8;
+  --code-text: #d4d4d4;
+  --table-header-bg: #252525;
+  --table-row-alt: #212121;
+  --indent-guide: rgb(255 255 255 / 0.1);
+  --scrollbar: rgb(255 255 255 / 0.13);
+  --scrollbar-hover: rgb(255 255 255 / 0.25);
+  --shadow-s: 0 1px 2px rgb(0 0 0 / 0.3), 0 2px 6px rgb(0 0 0 / 0.25);
+  --shadow-l: 0 2px 8px rgb(0 0 0 / 0.3), 0 16px 48px rgb(0 0 0 / 0.5);
+
+  --c-red: rgb(251 70 76);
+  --c-orange: rgb(233 151 63);
+  --c-yellow: rgb(224 222 113);
+  --c-green: rgb(68 207 110);
+  --c-cyan: rgb(83 223 221);
+  --c-blue: rgb(2 122 255);
+  --c-purple: rgb(168 130 255);
+  --c-grey: rgb(158 158 158);
+
+  --graph-line: rgb(255 255 255 / 0.14);
+  --graph-node: #9a9a9a;
+  --graph-node-unresolved: #555555;
+  --graph-text: #dadada;
+}
+
+/* Yellow text does not read on white. */
+html[data-theme="light"] .callout[data-callout="question"] {
+  --callout-color: rgb(196 145 0);
+}

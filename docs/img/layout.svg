@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 300" width="560" height="300" role="img" aria-labelledby="layout-title" font-family="system-ui, sans-serif" font-size="12">
+  <title id="layout-title">The screen layout of the viewer</title>
+
+  <!-- Window -->
+  <rect x="0.5" y="0.5" width="559" height="299" rx="8" fill="#ffffff" stroke="#b9b9b9"/>
+
+  <!-- Left sidebar -->
+  <path d="M8.5 0.5H130.5V299.5H8.5a8 8 0 0 1-8-8V8.5a8 8 0 0 1 8-8z" fill="#f1f1f1" stroke="#b9b9b9"/>
+  <text x="14" y="24" font-weight="600" fill="#333333">Left sidebar</text>
+  <text x="14" y="50" fill="#555555">docs</text>
+  <text x="26" y="70" fill="#555555">README</text>
+  <rect x="20" y="78" width="100" height="20" rx="4" fill="#dcd6fb"/>
+  <text x="26" y="92" fill="#333333">USAGE</text>
+  <text x="26" y="112" fill="#555555">THEMES</text>
+  <text x="14" y="134" fill="#555555">api</text>
+  <text x="26" y="154" fill="#555555">openapi</text>
+  <text x="65" y="282" text-anchor="middle" fill="#888888">File tree</text>
+
+  <!-- Header -->
+  <rect x="130.5" y="0.5" width="279" height="34" fill="#fafafa" stroke="#b9b9b9"/>
+  <text x="142" y="22" fill="#555555">docs / USAGE</text>
+  <circle cx="394" cy="17.5" r="4" fill="#0a8f43"/>
+  <text x="270" y="50" text-anchor="middle" fill="#888888">Header: path, controls, live reload status</text>
+
+  <!-- Content -->
+  <text x="160" y="92" font-size="18" font-weight="700" fill="#222222">Usage</text>
+  <rect x="160" y="108" width="220" height="7" rx="3.5" fill="#d9d9d9"/>
+  <rect x="160" y="124" width="200" height="7" rx="3.5" fill="#d9d9d9"/>
+  <rect x="160" y="140" width="212" height="7" rx="3.5" fill="#d9d9d9"/>
+  <rect x="160" y="166" width="220" height="44" rx="6" fill="#f1f1f1"/>
+  <rect x="160" y="226" width="180" height="7" rx="3.5" fill="#d9d9d9"/>
+  <text x="270" y="282" text-anchor="middle" fill="#888888">Content: the page</text>
+
+  <!-- Right sidebar -->
+  <path d="M409.5 0.5H551.5a8 8 0 0 1 8 8V291.5a8 8 0 0 1-8 8H409.5z" fill="#f1f1f1" stroke="#b9b9b9"/>
+  <text x="422" y="24" font-weight="600" fill="#333333">Right sidebar</text>
+  <text x="422" y="52" fill="#333333">Outline</text>
+  <rect x="422" y="62" width="90" height="6" rx="3" fill="#cfcfcf"/>
+  <rect x="432" y="76" width="80" height="6" rx="3" fill="#cfcfcf"/>
+  <rect x="432" y="90" width="96" height="6" rx="3" fill="#cfcfcf"/>
+  <text x="422" y="132" fill="#333333">Linked mentions</text>
+  <rect x="422" y="142" width="110" height="6" rx="3" fill="#cfcfcf"/>
+  <rect x="422" y="156" width="84" height="6" rx="3" fill="#cfcfcf"/>
+  <text x="484" y="282" text-anchor="middle" fill="#888888">Outline, backlinks</text>
+</svg>
