@@ -2038,7 +2038,7 @@
 
   function searchHint() {
     const rows = [
-      ['word other', 'lines with both words'],
+      ['word other', 'notes with both words'],
       ['"exact phrase"', 'the phrase as written'],
       ['tag:#name', 'notes with a tag'],
       ['path:ref/', 'files under a path'],
