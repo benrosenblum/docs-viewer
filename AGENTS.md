@@ -119,7 +119,7 @@ api/               openapi.yaml, the spec vault of this repo
 
 ## Theme rules
 
-- `viewer.css` holds structure and no theme value. Colours, fonts, and radii
+- `viewer.css` holds structure and no theme value. Colors, fonts, and radii
   are custom properties that the theme sets.
 - `theme.css` is the built-in theme. It sets each required property for
   `html[data-theme="light"]` and `html[data-theme="dark"]`.
@@ -128,7 +128,7 @@ api/               openapi.yaml, the spec vault of this repo
 - A new property is either required (set it in `theme.css`) or optional
   (give it a fallback in `viewer.css`: `var(--name, fallback)`). Add it to
   `docs/THEMES.md`. `TestThemeProperties` fails on a read with no source.
-- The `--c-*` hues are complete colours. `viewer.css` mixes them with
+- The `--c-*` hues are complete colors. `viewer.css` mixes them with
   `color-mix`.
 
 ## Workflow

@@ -95,7 +95,7 @@
       cleanups.push(() => target.removeEventListener(type, handler, options));
     }
 
-    // ----- Colours and size -------------------------------------------------
+    // ----- Colors and size -------------------------------------------------
 
     function readColors() {
       const style = getComputedStyle(container);
@@ -430,7 +430,7 @@
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
       ctx.fillStyle = colors.text;
-      // A halo in the background colour keeps labels readable over links and nodes.
+      // A halo in the background color keeps labels readable over links and nodes.
       ctx.strokeStyle = colors.background;
       ctx.lineWidth = 3 / k;
       ctx.lineJoin = 'round';

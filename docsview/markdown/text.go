@@ -75,7 +75,7 @@ func unescapeText(v []byte) []byte {
 }
 
 // linkContext returns the collapsed text of the block around n, trimmed to
-// about maxContext runes centred on n.
+// about maxContext runes centered on n.
 func linkContext(n ast.Node, source []byte) string {
 	block := n.Parent()
 	for block != nil && !isTextBlock(block) {

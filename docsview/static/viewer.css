@@ -1,8 +1,8 @@
 /*
  * Docs viewer styles. The layout follows Obsidian: muted sidebars and a
- * centred reading column. Colours, fonts, and radii come from the theme
+ * centered reading column. Colors, fonts, and radii come from the theme
  * stylesheet, which the page loads first and which switches on
- * html[data-theme]. Syntax colours come from highlight.css (chroma); this
+ * html[data-theme]. Syntax colors come from highlight.css (chroma); this
  * file never styles token classes.
  */
 
@@ -1397,7 +1397,7 @@ pre.mermaid > svg {
 }
 
 /* A top-level diagram wider than the text column grows up to the width of
-   the view, centred on the column, and scrolls sideways beyond that. */
+   the view, centered on the column, and scrolls sideways beyond that. */
 #content > .markdown-body > pre.mermaid[data-processed] {
   --diagram-width: min(var(--diagram-natural-width, 0px) + 26px, 100cqw - 3rem);
   width: max(100%, var(--diagram-width));
@@ -1577,7 +1577,7 @@ pre.code-block.source {
 }
 
 /* Line numbers stay put while the code scrolls sideways, so every layer from
-   the <pre> down to .ln carries the block's opaque background colour, and the
+   the <pre> down to .ln carries the block's opaque background color, and the
    hover and target tints are drawn as images on top of it. */
 pre.code-block.source > code,
 pre.code-block.source .line {

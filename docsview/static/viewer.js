@@ -1,6 +1,6 @@
 // Docs viewer client: navigation, live reload, rendering, and panels.
 // Plain browser script (no modules, no build step). The server renders every
-// page; this script swaps page parts in place and adds behaviour on top.
+// page; this script swaps page parts in place and adds behavior on top.
 'use strict';
 (function () {
   const STORE_THEME = 'docsview:theme';
