@@ -161,18 +161,22 @@ func TestRenderDiffBlocks(t *testing.T) {
 		name, old, new string
 		removed, added []string // Tag names with each mark, in order.
 		want           []string
+		changes        int
 	}{
 		{"changed paragraph", "# T\n\nThe pool holds four connections.\n\nOther.\n", "# T\n\nThe pool is rebuilt at start.\n\nOther.\n",
-			[]string{"p"}, []string{"p"}, []string{"<p>Other.</p>", `<h1 id="t">T</h1>`}},
-		{"added list item", items(10, ""), items(10, "- new item\n"), nil, []string{"li"}, []string{"<li>item 6</li>"}},
-		{"removed section", "# T\n\n## Gone\n\nText.\n\n## Kept\n", "# T\n\n## Kept\n", []string{"h2", "p"}, nil, nil},
+			[]string{"p"}, []string{"p"}, []string{"<p>Other.</p>", `<h1 id="t">T</h1>`, `<p class="diff-removed" data-change="">`, `<p class="diff-added">`}, 1},
+		{"two changed paragraphs", "One.\n\nKept.\n\nTwo.\n", "Uno.\n\nKept.\n\nDos.\n", []string{"p", "p"}, []string{"p", "p"}, nil, 2},
+		{"added list item", items(10, ""), items(10, "- new item\n"), nil, []string{"li"}, []string{"<li>item 6</li>"}, 1},
+		{"removed section", "# T\n\n## Gone\n\nText.\n\n## Kept\n", "# T\n\n## Kept\n", []string{"h2", "p"}, nil, nil, 1},
 		{"changed table row", "| A | B |\n|---|---|\n| 1 | 2 |\n| 3 | 4 |\n", "| A | B |\n|---|---|\n| 1 | 2 |\n| 3 | 5 |\n",
-			[]string{"tr"}, []string{"tr"}, []string{"<table>"}},
-		{"new table column", "| A |\n|---|\n| 1 |\n", "| A | B |\n|---|---|\n| 1 | 2 |\n", []string{"table"}, []string{"table"}, nil},
+			[]string{"tr"}, []string{"tr"}, []string{"<table>"}, 1},
+		{"new table column", "| A |\n|---|\n| 1 |\n", "| A | B |\n|---|---|\n| 1 | 2 |\n", []string{"table"}, []string{"table"}, nil, 1},
 		{"changed code block", "```go\nx := 1\n```\n", "```go\nx := 2\n```\n", []string{"div"}, []string{"div"},
-			[]string{`<div class="diff-block diff-removed">` + "\n" + `<pre class="code-block chroma" data-lang="go">`}},
+			[]string{`<div class="diff-block diff-removed" data-change="">` + "\n" + `<pre class="code-block chroma" data-lang="go">`}, 1},
 		{"changed callout paragraph", "> [!note] Title\n> old text here\n", "> [!note] Title\n> new text here\n", []string{"p"}, []string{"p"},
-			[]string{`<div class="callout" data-callout="note">`}},
+			[]string{`<div class="callout" data-callout="note">`}, 1},
+		{"added embed", "Text.\n", "Text.\n\n![[CLI]]\n", nil, []string{"div"}, []string{`<div class="diff-block diff-added" data-change="">`}, 1},
+		{"changed comment", "Text.\n\n%% old %%\n", "Text.\n\n%% new %%\n", nil, nil, nil, 0},
 	} {
 		d := renderDiff(t, tc.old, tc.new)
 		check := func(class string, want []string) {
@@ -195,6 +199,10 @@ func TestRenderDiffBlocks(t *testing.T) {
 		if strings.Count(d.HTML, "<ul>") > 1 || strings.Count(d.HTML, "<table") > 2 {
 			t.Errorf("%s: a container split\n%s", tc.name, d.HTML)
 		}
+		// Each change has one stop: its first mark.
+		if n := strings.Count(d.HTML, "data-change"); d.Changes != tc.changes || n != tc.changes {
+			t.Errorf("%s: %d changes and %d stops, want %d\n%s", tc.name, d.Changes, n, tc.changes, d.HTML)
+		}
 	}
 }
 
@@ -214,14 +222,14 @@ func TestRenderDiffWords(t *testing.T) {
 		want, notWant  []string
 	}{
 		{"one word in a paragraph", "The pool holds four connections.\n", "The pool holds eight connections.\n",
-			[]string{`<p class="diff-removed">The pool holds <del class="diff-word">four</del> connections.</p>`,
+			[]string{`<p class="diff-removed" data-change="">The pool holds <del class="diff-word">four</del> connections.</p>`,
 				`<p class="diff-added">The pool holds <ins class="diff-word">eight</ins> connections.</p>`}, nil},
 		{"changed link text", "See [the engine](https://example.com/engine) for more.\n", "See [the render engine](https://example.com/engine) for more.\n",
 			[]string{`>the engine</a>`, `>the <ins class="diff-word">render</ins> engine</a>`}, []string{"<del"}},
 		{"changed table cell", "| Name | Size |\n|---|---|\n| pool | 4 |\n", "| Name | Size |\n|---|---|\n| pool | 8 |\n",
 			[]string{`<td>pool</td>`, `<td><del class="diff-word">4</del></td>`, `<td><ins class="diff-word">8</ins></td>`}, nil},
 		{"rewritten paragraph", "The parser reads every line.\n", "Reload sends pages to browsers.\n",
-			[]string{`<p class="diff-removed">`, `<p class="diff-added">`}, []string{"diff-word"}},
+			[]string{`<p class="diff-removed" data-change="">`, `<p class="diff-added">`}, []string{"diff-word"}},
 		{"word in emphasis", "A *very old* text.\n", "A *very new* text.\n",
 			[]string{`<em>very <del class="diff-word">old</del></em>`, `<em>very <ins class="diff-word">new</ins></em>`}, nil},
 		{"inline code span", "Use `foo` for the pool now.\n", "Use `bar` for the pool now.\n",
@@ -229,7 +237,7 @@ func TestRenderDiffWords(t *testing.T) {
 		{"heading", "## Old name here\n", "## New name here\n",
 			[]string{`<del class="diff-word">Old</del> name here</h2>`, `<ins class="diff-word">New</ins> name here</h2>`}, nil},
 		{"list item", "- keep the old words\n- other\n", "- keep the new words\n- other\n",
-			[]string{`<li class="diff-removed">keep the <del class="diff-word">old</del> words</li>`}, nil},
+			[]string{`<li class="diff-removed" data-change="">keep the <del class="diff-word">old</del> words</li>`}, nil},
 		{"code block", "```\nx := 1\n```\n", "```\nx := 2\n```\n", []string{"diff-block"}, []string{"diff-word"}},
 		{"soft line break", "one two\nthree four\n", "one two\nthree five\n",
 			[]string{"one two\nthree <del class=\"diff-word\">four</del></p>"}, nil},

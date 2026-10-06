@@ -79,6 +79,8 @@ A file page has these controls in its header:
   This control shows in diff mode and on the normal page of a changed
   file.
 - **Rendered / Source**: selects the form of the diff of a note.
+- **The change count**: the number of changes that the page shows, such as
+  "5 changes". See [Change count](#change-count).
 - **The base picker**: the button shows the base ("Uncommitted", "Branch",
   or a short hash), or "Compare" on the normal page. It opens a list:
   1. "Uncommitted changes": the base is `HEAD`.
@@ -179,6 +181,27 @@ Word marks do not show in these cases:
 - The block is a code block, a math block, a diagram, an HTML block, or a
   table that changed its header row. These blocks get block marks only.
   The source diff shows their word changes.
+
+## Change count
+
+The header of a diff page shows the number of changes, such as
+"5 changes". One change is:
+
+- In the rendered diff: a group of adjacent marked blocks. The base
+  version and the current version of a changed block are one change. The
+  properties section with an orange mark is also one change.
+- In the source diff: a group of adjacent removed and added lines.
+
+Thus the two forms can show different counts for the same file.
+
+- A change that has no mark is not in the count. For example, the rendered
+  diff does not show a comment (`%% ... %%`), so a changed comment is not a
+  change there.
+- A page with a message and no lines shows no count.
+- In a window narrower than 480 pixels, the header hides the count.
+
+The first element of each change has the attribute `data-change`. The
+count is the number of these elements.
 
 ## Live reload
 
@@ -301,11 +324,13 @@ The Go tests use temporary repositories and need `git` on `PATH`:
 - `docsview/git_test.go`: the detection of the work tree, the base
   grammar, the status marks, the history with renames, and the content of
   a file at a commit.
-- `docsview/diffpage_test.go`: diff mode, the URL parameters, the tree
-  marks, the history route, live reload from git, and a viewer without
-  git.
-- `docsview/diffview_test.go`: the source diff.
+- `docsview/diffpage_test.go`: diff mode, the URL parameters, the change
+  count in the header, the tree marks, the history route, live reload from
+  git, and a viewer without git.
+- `docsview/diffview_test.go`: the source diff, and its change count.
 - `docsview/linediff`: the line diff, the hunks, the pairs, and the word
   marks.
 - `docsview/markdown/diff_test.go`: the diff units, the merged source
-  (with random edits), the rendered diff, and the word marks.
+  (with random edits), the rendered diff, the word marks, and the change
+  count. Each case compares the count with the number of `data-change`
+  elements.

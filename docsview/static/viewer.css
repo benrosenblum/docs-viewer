@@ -2442,6 +2442,13 @@ body[data-kind="graph"] [data-action="toggle-right"] {
   gap: 6px;
 }
 
+.diff-count {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 .segmented {
   display: inline-flex;
   overflow: hidden;
@@ -2858,7 +2865,8 @@ del.diff-word {
     display: none;
   }
 
-  .diff-picker-button > span {
+  .diff-picker-button > span,
+  .diff-count {
     display: none;
   }
 

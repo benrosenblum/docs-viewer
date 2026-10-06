@@ -36,8 +36,8 @@ func TestDiffMode(t *testing.T) {
 
 	// A changed note opens in the rendered diff against HEAD.
 	page := get(t, h, "/docs/USAGE.md", 200).Body.String()
-	contains(t, "changed note", page, `data-kind="diff"`, `<p class="diff-removed">The pool holds <del class="diff-word">four</del> connections.</p>`,
-		`<p class="diff-added">The pool holds <ins class="diff-word">eight</ins> connections.</p>`, "<p>Other text.</p>",
+	contains(t, "changed note", page, `data-kind="diff"`, `<p class="diff-removed" data-change="">The pool holds <del class="diff-word">four</del> connections.</p>`,
+		`<p class="diff-added">The pool holds <ins class="diff-word">eight</ins> connections.</p>`, "<p>Other text.</p>", `<span class="diff-count">1 change</span>`,
 		`href="/docs/USAGE.md?diff=off">Page</a>`, `data-base="HEAD"`, "<span>Uncommitted</span>", `href="/docs/USAGE.md?as=source&amp;diff=HEAD">Source</a>`,
 		`data-level="1"><a href="#usage">Usage</a>`)
 	// A clean note opens as the normal page, with a picker and no toggle.
@@ -51,9 +51,13 @@ func TestDiffMode(t *testing.T) {
 	contains(t, "normal page", page, `data-kind="note"`, `href="/docs/USAGE.md">Changes</a>`, `aria-current="page">Page</a>`)
 	// The source diff of the note.
 	page = get(t, h, "/docs/USAGE.md?diff=HEAD&as=source", 200).Body.String()
-	contains(t, "source diff", page, `class="diff-table chroma"`, `<del class="diff-word">four</del>`, `data-as="source"`)
-	// An explicit base on a clean file says that nothing changed.
-	contains(t, "clean file", get(t, h, "/docs/CLI.md?diff=HEAD", 200).Body.String(), "The file has no changes against HEAD.")
+	contains(t, "source diff", page, `class="diff-table chroma"`, `<del class="diff-word">four</del>`, `data-as="source"`, `<span class="diff-count">1 change</span>`)
+	// An explicit base on a clean file says that nothing changed, with no count.
+	page = get(t, h, "/docs/CLI.md?diff=HEAD", 200).Body.String()
+	contains(t, "clean file", page, "The file has no changes against HEAD.")
+	if strings.Contains(page, "diff-count") {
+		t.Error("clean file has a change count")
+	}
 
 	// Invalid and unknown bases get status 400 in the viewer layout.
 	for _, target := range []string{"/docs/USAGE.md?diff=0000000", "/docs/USAGE.md?diff=--output%3D%2Ftmp%2Fx", "/docs/USAGE.md?diff=HEAD~1", "/docs/USAGE.md?diff="} {
@@ -65,7 +69,7 @@ func TestDiffMode(t *testing.T) {
 	// An untracked note shows as added.
 	write(t, filepath.Join(repo, "docs/NEW.md"), "# New\n\nFresh text.\n")
 	page = get(t, h, "/docs/NEW.md", 200).Body.String()
-	contains(t, "untracked note", page, `<h1 class="diff-added" id="new">New</h1>`, `<p class="diff-added">Fresh text.</p>`)
+	contains(t, "untracked note", page, `<h1 class="diff-added" data-change="" id="new">New</h1>`, `<p class="diff-added">Fresh text.</p>`, `<span class="diff-count">1 change</span>`)
 
 	// A file outside the vault gets the source diff; an image stays raw.
 	write(t, filepath.Join(repo, "internal/pool/pool.go"), "package pool\n\nconst maxOpenFiles = 8\n")
@@ -81,9 +85,10 @@ func TestDiffMode(t *testing.T) {
 	write(t, filepath.Join(repo, "docs/USAGE.md"), large)
 	contains(t, "large note", get(t, h, "/docs/USAGE.md", 200).Body.String(), "The note is too large for the rendered diff.", `class="diff-table chroma"`)
 
-	// A changed property marks the properties section.
-	write(t, filepath.Join(repo, "docs/CLI.md"), "---\nstatus: final\n---\n# CLI\n\nThe tool prints rows.\n")
-	contains(t, "changed property", get(t, h, "/docs/CLI.md", 200).Body.String(), `<div class="diff-properties diff-changed">`, `<span class="property-text">final</span>`)
+	// A changed property marks the properties section, which is a change.
+	write(t, filepath.Join(repo, "docs/CLI.md"), "---\nstatus: final\n---\n# CLI\n\nThe tool prints more rows.\n")
+	contains(t, "changed property", get(t, h, "/docs/CLI.md", 200).Body.String(), `<div class="diff-properties diff-changed" data-change>`, `<span class="property-text">final</span>`,
+		`<span class="diff-count">2 changes</span>`)
 
 	// After a commit, the bare URL shows the normal note.
 	runGit(t, repo, "add", "-A")

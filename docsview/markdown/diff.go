@@ -24,6 +24,9 @@ type Diff struct {
 	PropertiesChanged bool
 	// Approximate is true when the line diff gave up (linediff.MaxEdits).
 	Approximate bool
+	// Changes is the number of changes in the body. The first marked
+	// element of each change has the attribute data-change.
+	Changes int
 }
 
 // RenderDiff renders one merged note that shows the old and the new
@@ -39,11 +42,12 @@ func RenderDiff(old, cur []byte, from string, r Resolver) (d *Diff, err error) {
 	oldFM, oldBody, oldHasFM := splitFrontmatter(old)
 	newFM, newBody, newHasFM := splitFrontmatter(cur)
 	merged, lines, approximate := mergeBodies(oldBody, newBody)
-	doc, err := render(newFM, merged, newHasFM, from, r, &diffState{lines: lines})
+	state := &diffState{lines: lines}
+	doc, err := render(newFM, merged, newHasFM, from, r, state)
 	if err != nil {
 		return nil, err
 	}
-	return &Diff{Document: doc, PropertiesChanged: oldHasFM != newHasFM || !bytes.Equal(oldFM, newFM), Approximate: approximate}, nil
+	return &Diff{Document: doc, PropertiesChanged: oldHasFM != newHasFM || !bytes.Equal(oldFM, newFM), Approximate: approximate, Changes: state.changes}, nil
 }
 
 // Diff unit kinds. Only paragraphs, headings, items, and rows get word marks.
@@ -365,9 +369,11 @@ func expand(spans []span, oldUnits, newUnits []unit) []span {
 	return spans
 }
 
-// diffState carries the merged line origins into one render.
+// diffState carries the merged line origins into one render, and the
+// number of changes out of it.
 type diffState struct {
-	lines []mergedLine
+	lines   []mergedLine
+	changes int
 }
 
 // unitPair is a removed unit and an added unit of one change, of the same kind.
@@ -378,6 +384,23 @@ type unitPair struct{ old, new unit }
 func (d *diffState) markUnits(doc ast.Node, source []byte) []unitPair {
 	removed, added := map[int][]unit{}, map[int][]unit{}
 	covered := map[ast.Node]bool{} // Tables marked as one unit.
+	started := map[int]bool{}      // Changes that have their first mark.
+	// start counts a change at its first mark. A mixed unit has no change
+	// of its own lines, so it is a change of its own.
+	start := func(hunk int) bool {
+		if hunk >= 0 && started[hunk] {
+			return false
+		}
+		started[hunk] = true
+		d.changes++
+		return true
+	}
+	mark := func(n ast.Node, class string, hunk int) {
+		n.SetAttributeString("class", []byte(class))
+		if start(hunk) {
+			n.SetAttributeString("data-change", []byte(""))
+		}
+	}
 	for _, u := range diffUnits(doc, source) {
 		if u.kind == unitRow && covered[u.node.Parent()] {
 			continue
@@ -386,7 +409,7 @@ func (d *diffState) markUnits(doc ast.Node, source []byte) []unitPair {
 		class := map[origin]string{originOld: "diff-removed", originNew: "diff-added", originMixed: "diff-changed"}[o]
 		if u.kind == unitTable {
 			if o == originOld || o == originNew {
-				u.node.SetAttributeString("class", []byte(class))
+				mark(u.node, class, hunk)
 				covered[u.node] = true
 			}
 			continue
@@ -396,10 +419,10 @@ func (d *diffState) markUnits(doc ast.Node, source []byte) []unitPair {
 		}
 		switch u.kind {
 		case unitCode, unitHTML, unitMath:
-			wrapBlock(u.node, class)
+			wrapBlock(u.node, class, start(hunk))
 		case unitComment:
 		default:
-			u.node.SetAttributeString("class", []byte(class))
+			mark(u.node, class, hunk)
 		}
 		switch u.kind {
 		case unitParagraph, unitHeading, unitItem, unitRow:
@@ -450,6 +473,7 @@ var (
 type diffBlock struct {
 	ast.BaseBlock
 	class string
+	start bool // The first mark of a change.
 }
 
 func (n *diffBlock) Kind() ast.NodeKind { return kindDiffBlock }
@@ -459,16 +483,21 @@ func (n *diffBlock) Dump(source []byte, level int) {
 }
 
 // wrapBlock puts n in a diffBlock with class.
-func wrapBlock(n ast.Node, class string) {
+func wrapBlock(n ast.Node, class string, start bool) {
 	parent := n.Parent()
-	block := &diffBlock{class: class}
+	block := &diffBlock{class: class, start: start}
 	parent.ReplaceChild(parent, n, block)
 	block.AppendChild(block, n)
 }
 
 func renderDiffBlock(w util.BufWriter, _ []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	if entering {
-		_, _ = w.WriteString(`<div class="diff-block ` + node.(*diffBlock).class + "\">\n")
+		block := node.(*diffBlock)
+		_, _ = w.WriteString(`<div class="diff-block ` + block.class + `"`)
+		if block.start {
+			_, _ = w.WriteString(` data-change=""`)
+		}
+		_, _ = w.WriteString(">\n")
 	} else {
 		_, _ = w.WriteString("</div>\n")
 	}

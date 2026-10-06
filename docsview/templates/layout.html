@@ -52,6 +52,9 @@
 {{- if and .Diff .Diff.Note}}
 <nav class="segmented" aria-label="Diff form"><a href="{{.Diff.RenderedURL}}"{{if not .Diff.Source}} aria-current="page"{{end}}>Rendered</a><a href="{{.Diff.SourceURL}}"{{if .Diff.Source}} aria-current="page"{{end}}>Source</a></nav>
 {{- end}}
+{{- if and .Diff .Diff.Changes}}
+<span class="diff-count">{{.Diff.Changes}} {{if eq .Diff.Changes 1}}change{{else}}changes{{end}}</span>
+{{- end}}
 <button type="button" class="diff-picker-button" data-action="diff-picker" data-path="{{.Path}}" data-base="{{.Base}}"{{if and .Diff .Diff.Source .Diff.Note}} data-as="source"{{end}} aria-haspopup="listbox" aria-expanded="false" title="Compare with an earlier version">{{icon "history"}}<span>{{.Label}}</span></button>
 </div>
 {{- end}}
@@ -88,7 +91,7 @@
 <div class="source-view diff-source">{{.Diff.Table}}</div>
 {{- end}}
 {{- else if .Doc}}
-{{- if .Diff.PropertiesChanged}}<div class="diff-properties diff-changed">{{template "properties" .Doc}}</div>{{else}}{{template "properties" .Doc}}{{end}}
+{{- if .Diff.PropertiesChanged}}<div class="diff-properties diff-changed"{{if or .Doc.Properties .Doc.PropertiesError}} data-change{{end}}>{{template "properties" .Doc}}</div>{{else}}{{template "properties" .Doc}}{{end}}
 <div class="markdown-body">{{.Body}}</div>
 {{- end}}
 </article>

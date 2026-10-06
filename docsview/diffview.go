@@ -33,20 +33,22 @@ func isBinary(data []byte) bool { return !utf8.Valid(data) || bytes.IndexByte(da
 // noChanges is the message for two equal versions.
 func noChanges(label string) string { return "The file has no changes against " + label + "." }
 
-// sourceDiff renders the unified diff of two versions of a file as a table.
-// oldExists is false when the file did not exist at the base, and tooLarge
-// is true when a version is above the display limit. label names the base
-// in messages. Without lines, the table is empty and the message says why.
-func sourceDiff(old, cur []byte, oldExists, tooLarge bool, filename, label string) (template.HTML, string) {
+// sourceDiff renders the unified diff of two versions of a file as a table,
+// and counts its changes: the runs of removed and added lines. The first
+// row of each change has the attribute data-change. oldExists is false when
+// the file did not exist at the base, and tooLarge is true when a version
+// is above the display limit. label names the base in messages. Without
+// lines, the table is empty and the message says why.
+func sourceDiff(old, cur []byte, oldExists, tooLarge bool, filename, label string) (table template.HTML, changes int, message string) {
 	switch {
 	case tooLarge:
-		return "", msgTooLarge
+		return "", 0, msgTooLarge
 	case isBinary(old) || isBinary(cur):
-		return "", msgBinary
+		return "", 0, msgBinary
 	case oldExists && bytes.Equal(old, cur):
-		return "", noChanges(label)
+		return "", 0, noChanges(label)
 	case !oldExists && len(cur) == 0:
-		return "", msgNewEmpty
+		return "", 0, msgNewEmpty
 	}
 	a, b := linediff.Lines(string(old)), linediff.Lines(string(cur))
 	edits, approximate := linediff.Diff(a, b)
@@ -57,7 +59,7 @@ func sourceDiff(old, cur []byte, oldExists, tooLarge bool, filename, label strin
 	newLines, _ := markdown.HighlightLines(cur, "", filename)
 	if len(oldLines) != len(a) || len(newLines) != len(b) {
 		// Cannot happen: both split after each "\n".
-		return "", fmt.Sprintf("The diff failed: %d and %d highlighted lines for %d and %d lines.", len(oldLines), len(newLines), len(a), len(b))
+		return "", 0, fmt.Sprintf("The diff failed: %d and %d highlighted lines for %d and %d lines.", len(oldLines), len(newLines), len(a), len(b))
 	}
 	oldMarks, newMarks := wordMarks(edits, oldLines, newLines)
 	t := &diffTable{old: oldLines, new: newLines, oldMarks: oldMarks, newMarks: newMarks}
@@ -67,7 +69,9 @@ func sourceDiff(old, cur []byte, oldExists, tooLarge bool, filename, label strin
 	for _, h := range hunks {
 		t.hidden(oldPos, h.OldStart, newPos)
 		t.b.WriteString(`<tbody class="diff-hunk">`)
-		for _, e := range h.Edits {
+		for i, e := range h.Edits {
+			// A change starts at its removed lines, else at its added lines.
+			t.start = e.Op == linediff.Delete || e.Op == linediff.Insert && (i == 0 || h.Edits[i-1].Op != linediff.Delete)
 			t.rows(e)
 		}
 		t.b.WriteString("</tbody>")
@@ -75,11 +79,10 @@ func sourceDiff(old, cur []byte, oldExists, tooLarge bool, filename, label strin
 	}
 	t.hidden(oldPos, len(a), newPos)
 	t.b.WriteString("</table>")
-	message := ""
 	if approximate {
 		message = msgApproximate
 	}
-	return template.HTML(t.b.String()), message
+	return template.HTML(t.b.String()), t.changes, message
 }
 
 // wordMarks returns the word marks of each paired line, by line index.
@@ -108,6 +111,8 @@ type diffTable struct {
 	b                  strings.Builder
 	old, new           []markdown.SourceLine
 	oldMarks, newMarks map[int][][2]int
+	start              bool // The next row is the first of a change.
+	changes            int
 }
 
 // hidden writes a run of unchanged lines, from old line oldLo to oldHi, as
@@ -151,5 +156,10 @@ func (t *diffTable) row(class string, oldNum, newNum int, marker, code string) {
 		}
 		return strconv.Itoa(n)
 	}
-	t.b.WriteString(`<tr class="diff-line ` + class + `"><td class="diff-num">` + num(oldNum) + `</td><td class="diff-num">` + num(newNum) + `</td><td class="diff-marker" aria-hidden="true">` + marker + `</td><td class="diff-code">` + code + "</td></tr>")
+	stop := ""
+	if t.start {
+		stop, t.start = " data-change", false
+		t.changes++
+	}
+	t.b.WriteString(`<tr class="diff-line ` + class + `"` + stop + `><td class="diff-num">` + num(oldNum) + `</td><td class="diff-num">` + num(newNum) + `</td><td class="diff-marker" aria-hidden="true">` + marker + `</td><td class="diff-code">` + code + "</td></tr>")
 }

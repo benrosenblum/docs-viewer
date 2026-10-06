@@ -188,7 +188,8 @@ func unwrapEmbedParagraphs(nodes []ast.Node, source []byte) {
 		}
 		p.Parent().ReplaceChild(p.Parent(), p, block)
 		if class := attribute(p, "class"); class != "" {
-			wrapBlock(block, class) // A diff mark on the paragraph.
+			_, start := p.AttributeString("data-change")
+			wrapBlock(block, class, start) // A diff mark on the paragraph.
 		}
 	}
 }

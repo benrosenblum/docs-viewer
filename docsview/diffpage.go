@@ -38,6 +38,9 @@ type diffView struct {
 	Table       template.HTML
 	// PropertiesChanged marks the properties section of a rendered diff.
 	PropertiesChanged bool
+	// Changes is the number of changes that the page shows. Each one has
+	// an element with the attribute data-change.
+	Changes int
 }
 
 // fileURL returns the URL of a file page with the diff and as parameters.
@@ -217,15 +220,19 @@ func (h *Handler) diff(w http.ResponseWriter, r *http.Request, idx *index, p, ba
 				break
 			}
 			pg.Doc, pg.Body, pg.Math = rendered.Document, template.HTML(rendered.HTML), rendered.Math
-			d.PropertiesChanged = rendered.PropertiesChanged
+			d.PropertiesChanged, d.Changes = rendered.PropertiesChanged, rendered.Changes
+			// The properties section is a change when it shows.
+			if d.PropertiesChanged && (len(pg.Doc.Properties) > 0 || pg.Doc.PropertiesError != "") {
+				d.Changes++
+			}
 			if rendered.Approximate {
 				d.Message = msgApproximate
 			}
 		}
 	}
 	if d.Source {
-		table, message := sourceDiff(old, cur, exists, tooLarge, path.Base(p), label)
-		d.Table = table
+		table, changes, message := sourceDiff(old, cur, exists, tooLarge, path.Base(p), label)
+		d.Table, d.Changes = table, changes
 		if message != "" {
 			d.Message = strings.TrimSpace(d.Message + " " + message)
 		}
