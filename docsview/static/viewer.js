@@ -975,6 +975,7 @@
     stopOutline();
     if (parts.main) {
       closePicker();
+      lastChange = null;
       replacePart('main', doc);
       document.title = doc.title;
       syncBodyAttributes(doc.body);
@@ -1206,6 +1207,11 @@
         event.preventDefault();
         togglePicker(element);
         return true;
+      case 'diff-prev':
+      case 'diff-next':
+        event.preventDefault();
+        jumpChange(action === 'diff-next' ? 1 : -1);
+        return true;
       case 'diff-expand': {
         event.preventDefault();
         const fold = element.closest('tbody.diff-fold');
@@ -1223,6 +1229,37 @@
       default:
         return false;
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Diff change navigation
+
+  // The last jump: the index of the change and the scroll position after it.
+  let lastChange = null;
+
+  /** Goes to the next (step 1) or the previous (step -1) change of a diff. */
+  function jumpChange(step) {
+    const container = view();
+    const stops = all('#content [data-change]');
+    if (!container || !stops.length) return;
+    let index;
+    if (lastChange && lastChange.scroll === container.scrollTop) {
+      // No scroll since the last jump: go on from that change. This also
+      // moves between changes in a view that cannot scroll.
+      index = lastChange.index + step;
+    } else {
+      // The first change in the view or below it, else the last one above.
+      // A change in a folded callout is at the position of the callout.
+      const top = container.getBoundingClientRect().top;
+      const below = stops.findIndex((stop) => (stop.closest('details:not([open])') || stop).getBoundingClientRect().top >= top);
+      index = (below < 0 ? stops.length : below) - (step > 0 ? 0 : 1);
+    }
+    index = clamp(index, 0, stops.length - 1);
+    const stop = stops[index];
+    for (let fold = stop.closest('details:not([open])'); fold; fold = fold.parentElement.closest('details:not([open])')) fold.open = true;
+    scrollViewTo(stop, container.clientHeight / 4);
+    flash(stop);
+    lastChange = {index, scroll: container.scrollTop};
   }
 
   // ---------------------------------------------------------------------------
@@ -2528,6 +2565,9 @@
     } else if (mod && !event.altKey && !event.shiftKey && key === 'g') {
       event.preventDefault();
       navigate('/_/graph', {push: true});
+    } else if (!mod && !event.altKey && (key === 'n' || key === 'p') && !modal && !picker && document.querySelector('.diff-nav') && !event.target.closest('input, textarea, select, [contenteditable]')) {
+      event.preventDefault();
+      jumpChange(key === 'n' ? 1 : -1);
     } else if (key === 'Escape') {
       if (closeModal() || closePicker() || closePreview()) {
         event.preventDefault();

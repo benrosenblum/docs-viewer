@@ -228,9 +228,12 @@ than the window shows at its usual size.
 | Ctrl+O | Open the quick switcher. |
 | Ctrl+Shift+F | Open search. |
 | Ctrl+G | Open the graph. |
+| N | On a diff page, go to the next change. See [GIT-DIFF.md](GIT-DIFF.md#move-between-the-changes). |
+| P | On a diff page, go to the previous change. |
 | Escape | Close the open list, preview, or lightbox. In a narrow window, close the open sidebar. |
 
-On macOS, you can use Cmd as an alternative to Ctrl.
+On macOS, you can use Cmd as an alternative to Ctrl. The keys N and P
+have no effect while you type in a field.
 
 ## Light and dark
 

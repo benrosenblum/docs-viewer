@@ -258,6 +258,8 @@ html[data-right="hidden"] #right-resizer {
   flex-direction: column;
   min-width: 0;
   background: var(--bg-primary);
+  /* The header hides parts when this column is narrow (@container). */
+  container-type: inline-size;
 }
 
 .view {
@@ -862,15 +864,21 @@ html.is-navigating .nav-progress {
   margin-bottom: 0;
 }
 
-/* Paragraph or list item target of a ^block reference or #hash navigation. */
+/* The target of a ^block reference or #hash navigation, or the change that
+   the reader moved to. */
 .is-flashing {
   border-radius: var(--radius-s);
   animation: flash 1.6s ease-out;
 }
 
+/* A code block hides the background of its diff block. */
+.diff-block.is-flashing pre.code-block {
+  animation: flash 1.6s ease-out;
+}
+
+/* No end frame: the flash fades to the background of the element. */
 @keyframes flash {
   0%, 30% { background-color: var(--text-highlight-bg); }
-  100% { background-color: transparent; }
 }
 
 /* ---------- Links and tags ---------- */
@@ -2442,11 +2450,40 @@ body[data-kind="graph"] [data-action="toggle-right"] {
   gap: 6px;
 }
 
+.diff-nav {
+  display: flex;
+  flex: none;
+  align-items: center;
+}
+
+/* The chevron points right: turn it up and down. */
+.diff-nav [data-action="diff-prev"] .icon {
+  transform: rotate(-90deg);
+}
+
+.diff-nav [data-action="diff-next"] .icon {
+  transform: rotate(90deg);
+}
+
 .diff-count {
+  margin-right: 4px;
   color: var(--text-muted);
   font-size: var(--font-ui-smaller);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+
+/* A narrow header has no room for the count, then for the two buttons. */
+@container (max-width: 700px) {
+  .diff-count {
+    display: none;
+  }
+}
+
+@container (max-width: 600px) {
+  .diff-nav {
+    display: none;
+  }
 }
 
 .segmented {
@@ -2865,8 +2902,7 @@ del.diff-word {
     display: none;
   }
 
-  .diff-picker-button > span,
-  .diff-count {
+  .diff-picker-button > span {
     display: none;
   }
 

@@ -37,7 +37,7 @@ func TestDiffMode(t *testing.T) {
 	// A changed note opens in the rendered diff against HEAD.
 	page := get(t, h, "/docs/USAGE.md", 200).Body.String()
 	contains(t, "changed note", page, `data-kind="diff"`, `<p class="diff-removed" data-change="">The pool holds <del class="diff-word">four</del> connections.</p>`,
-		`<p class="diff-added">The pool holds <ins class="diff-word">eight</ins> connections.</p>`, "<p>Other text.</p>", `<span class="diff-count">1 change</span>`,
+		`<p class="diff-added">The pool holds <ins class="diff-word">eight</ins> connections.</p>`, "<p>Other text.</p>", `<span class="diff-count">1 change</span>`, `data-action="diff-prev"`, `data-action="diff-next"`,
 		`href="/docs/USAGE.md?diff=off">Page</a>`, `data-base="HEAD"`, "<span>Uncommitted</span>", `href="/docs/USAGE.md?as=source&amp;diff=HEAD">Source</a>`,
 		`data-level="1"><a href="#usage">Usage</a>`)
 	// A clean note opens as the normal page, with a picker and no toggle.
@@ -55,8 +55,8 @@ func TestDiffMode(t *testing.T) {
 	// An explicit base on a clean file says that nothing changed, with no count.
 	page = get(t, h, "/docs/CLI.md?diff=HEAD", 200).Body.String()
 	contains(t, "clean file", page, "The file has no changes against HEAD.")
-	if strings.Contains(page, "diff-count") {
-		t.Error("clean file has a change count")
+	if strings.Contains(page, "diff-nav") {
+		t.Error("clean file has a change count and its buttons")
 	}
 
 	// Invalid and unknown bases get status 400 in the viewer layout.

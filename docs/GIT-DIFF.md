@@ -81,6 +81,8 @@ A file page has these controls in its header:
 - **Rendered / Source**: selects the form of the diff of a note.
 - **The change count**: the number of changes that the page shows, such as
   "5 changes". See [Change count](#change-count).
+- **Previous change / Next change**: the two arrow buttons adjacent to the
+  count. See [Move between the changes](#move-between-the-changes).
 - **The base picker**: the button shows the base ("Uncommitted", "Branch",
   or a short hash), or "Compare" on the normal page. It opens a list:
   1. "Uncommitted changes": the base is `HEAD`.
@@ -197,11 +199,35 @@ Thus the two forms can show different counts for the same file.
 - A change that has no mark is not in the count. For example, the rendered
   diff does not show a comment (`%% ... %%`), so a changed comment is not a
   change there.
-- A page with a message and no lines shows no count.
-- In a window narrower than 480 pixels, the header hides the count.
+- A page with a message and no lines shows no count and no buttons.
+- The header hides the count when the content column is narrower than
+  700 pixels. Thus the path of the page keeps its space.
 
 The first element of each change has the attribute `data-change`. The
 count is the number of these elements.
+
+## Move between the changes
+
+The two buttons adjacent to the change count go to the previous and to
+the next change. The keys `P` and `N` do the same.
+
+| Control | Function |
+|---------|----------|
+| The "Previous change" button, or the key `P` | Goes to the change before the current one. |
+| The "Next change" button, or the key `N` | Goes to the change after the current one. |
+
+- The page scrolls until the change is in the top part of the view. The
+  first block or the first line of the change shows a highlight for a
+  short time.
+- After you scroll, "Next change" goes to the first change in the view or
+  below it. "Previous change" goes to the last change above the view.
+- At the last change, "Next change" stays on that change. At the first
+  change, "Previous change" stays on that change.
+- A change in a folded callout opens the callout.
+- The keys have no effect while you type in a field, and while a dialog
+  or the base picker is open.
+- The header hides the two buttons when the content column is narrower
+  than 600 pixels. The keys continue to operate.
 
 ## Live reload
 
@@ -334,3 +360,18 @@ The Go tests use temporary repositories and need `git` on `PATH`:
   (with random edits), the rendered diff, the word marks, and the change
   count. Each case compares the count with the number of `data-change`
   elements.
+
+The repository has no browser tests. The buttons and the keys were
+examined in a browser, in the two forms and the two themes, with a long
+note, a note that does not scroll, and a source file:
+
+- the count against the number of `data-change` elements;
+- the sequence of the changes with the keys and with the buttons, to the
+  last change and back to the first;
+- the two buttons after a manual scroll, and with a change in a folded
+  callout;
+- the keys in the search field, in the quick switcher, and with the base
+  picker open;
+- the highlight on each type of marked block;
+- the count after a live reload;
+- the header at widths from 390 to 1400 pixels, with the sidebars open.
