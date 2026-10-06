@@ -1625,9 +1625,21 @@
   }
 
   // ---------------------------------------------------------------------------
-  // Modal prompt shared by the quick switcher and search
+  // Modal: the frame of the prompt and of the lightbox
 
   let modal = null;
+
+  /** Shows `dialog` as the one open modal. */
+  function showModal(id, dialog, onClose) {
+    closeModal();
+    const backdrop = h('div', {className: 'modal-backdrop', 'data-modal': id}, [dialog]);
+    backdrop.addEventListener('mousedown', (event) => {
+      if (event.target === backdrop) closeModal();
+    });
+    modal = {backdrop, dialog, returnFocus: document.activeElement, onClose};
+    document.body.append(backdrop);
+    return modal;
+  }
 
   function closeModal() {
     if (!modal) return false;
@@ -1639,13 +1651,15 @@
     return true;
   }
 
+  // ---------------------------------------------------------------------------
+  // Modal prompt shared by the quick switcher and search
+
   /**
    * Opens a prompt modal. `config.onInput(value)` renders results as the user
    * types; the caller renders the initial state once it has set up.
    * `config.onKeyDown(event)` may handle keys first.
    */
   function openPrompt(config) {
-    closeModal();
     const input = h('input', {
       className: 'prompt-input',
       type: 'search',
@@ -1668,12 +1682,7 @@
       results,
       instructions,
     ]);
-    const backdrop = h('div', {className: 'modal-backdrop', 'data-modal': config.id}, [dialog]);
-    backdrop.addEventListener('mousedown', (event) => {
-      if (event.target === backdrop) closeModal();
-    });
-    modal = {backdrop, dialog, input, results, instructions, returnFocus: document.activeElement, onClose: config.onClose};
-    document.body.append(backdrop);
+    Object.assign(showModal(config.id, dialog, config.onClose), {input, results, instructions});
     input.addEventListener('input', () => config.onInput(input.value));
     input.addEventListener('keydown', (event) => {
       if (event.key === 'Escape') {
