@@ -4,6 +4,8 @@ A read-only, Obsidian-style viewer for the Markdown documentation of a
 repository. Run it in a checkout and read the documents in a browser, with
 live reload.
 
+![A demonstration of the viewer: a note and the file tree, the quick switcher, search, a rendered diff, an API reference, and the graph.](docs/img/demo.gif)
+
 - A file tree, an outline, backlinks, search, a quick switcher, and a link
   graph.
 - Obsidian syntax: wikilinks, embeds, callouts, tags, and properties.
