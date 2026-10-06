@@ -122,6 +122,20 @@
     return Math.min(max, Math.max(min, value));
   }
 
+  /** Returns the zoom factor of a wheel event. */
+  function wheelZoomFactor(event) {
+    const scale = event.deltaMode === 1 ? 0.05 : event.deltaMode === 2 ? 0.5 : 0.0022;
+    return Math.exp(-event.deltaY * scale * (event.ctrlKey ? 2.5 : 1));
+  }
+
+  /** Scales `view` ({x, y, k}) by `factor`. The point (sx, sy) stays in place. */
+  function zoomView(view, sx, sy, factor, min, max) {
+    const k = clamp(view.k * factor, min, max);
+    view.x = sx - ((sx - view.x) / view.k) * k;
+    view.y = sy - ((sy - view.y) / view.k) * k;
+    view.k = k;
+  }
+
   /** Returns the viewer URL for a repository path, like the server's URL(). */
   function pathURL(path, fragment) {
     const encoded = '/' + String(path).split('/').map(encodeURIComponent).join('/');
@@ -2441,6 +2455,9 @@
     openSearch,
     setTheme: (theme) => setTheme(theme === 'dark' ? 'dark' : 'light', true),
     enhance,
+    // The zoom math that the graph shares with the lightbox.
+    wheelZoomFactor,
+    zoomView,
   };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);

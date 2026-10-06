@@ -348,11 +348,7 @@
     }
 
     function zoomAt(sx, sy, factor) {
-      const k = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, view.k * factor));
-      const world = toWorld(sx, sy);
-      view.k = k;
-      view.x = sx - world.x * k;
-      view.y = sy - world.y * k;
+      window.DocsViewer.zoomView(view, sx, sy, factor, MIN_ZOOM, MAX_ZOOM);
       userMoved = true;
       draw();
     }
@@ -572,9 +568,7 @@
     function onWheel(event) {
       event.preventDefault();
       const p = pointerPosition(event);
-      const scale = event.deltaMode === 1 ? 0.05 : event.deltaMode === 2 ? 0.5 : 0.0022;
-      const factor = Math.exp(-event.deltaY * scale * (event.ctrlKey ? 2.5 : 1));
-      zoomAt(p.x, p.y, factor);
+      zoomAt(p.x, p.y, window.DocsViewer.wheelZoomFactor(event));
     }
 
     function onKey(event) {

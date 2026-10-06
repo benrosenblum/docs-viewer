@@ -40,6 +40,11 @@ files, without a framework and without a build step. The one page
 template is `docsview/templates/layout.html`. The binary embeds these
 files.
 
+`viewer.js` exports its public functions on `window.DocsViewer`. `graph.js`
+uses the zoom functions from there (`zoomView` and `wheelZoomFactor`), so
+that the graph and the lightbox have the same zoom. The page always loads
+`viewer.js` before `graph.js`.
+
 ## URL space
 
 Each path below `/_/` belongs to the viewer. Each other path is a
