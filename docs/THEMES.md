@@ -104,7 +104,7 @@ correct colors.
 | `--font-mono` | The font family of code. |
 | `--radius-s` | The radius of small parts: buttons, tree rows, inline code, callouts. |
 | `--radius-m` | The radius of code blocks, diagrams, inputs, and list entries. |
-| `--radius-l` | The radius of the hover preview, the base picker, and the graph controls. |
+| `--radius-l` | The radius of the hover preview, the base picker, the graph controls, and the lightbox toolbar. |
 
 ### Accent
 
@@ -121,9 +121,9 @@ correct colors.
 
 | Property | Use |
 |----------|-----|
-| `--bg-primary` | The background of the content. |
+| `--bg-primary` | The background of the content and of the lightbox. |
 | `--bg-primary-alt` | The background of keyboard keys (`kbd`). |
-| `--bg-secondary` | The background of the sidebars, the graph controls, and the diff messages. |
+| `--bg-secondary` | The background of the sidebars, the graph controls, the lightbox toolbar, and the diff messages. |
 | `--bg-secondary-alt` | A second sidebar background. `viewer.css` does not read it now. |
 | `--bg-hover` | The background of a row or a button below the pointer. |
 | `--bg-active` | The background of the selected row: the open file, the selected list entry. |
@@ -162,7 +162,7 @@ correct colors.
 |----------|-----|
 | `--scrollbar` | The color of the scrollbar. |
 | `--scrollbar-hover` | The color of the scrollbar below the pointer. |
-| `--shadow-s` | The shadow of small layers: the graph controls, the update message. |
+| `--shadow-s` | The shadow of small layers: the graph controls, the lightbox toolbar, the update message. |
 | `--shadow-l` | The shadow of large layers: dialogs, the hover preview, the base picker. |
 
 ### Callout hues

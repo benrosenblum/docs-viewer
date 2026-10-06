@@ -2,7 +2,8 @@
 
 This document describes the pages of the viewer and the tools that find a
 document: the file tree, the outline, the backlinks, the quick switcher,
-search, and the graph.
+search, and the graph. It also describes the lightbox, which shows a
+diagram or an image across the full window.
 
 ## Terms
 
@@ -191,6 +192,35 @@ that heading.
 - Previews show only on a device with a mouse or a touchpad.
 - Press Escape to close a preview.
 
+## Lightbox
+
+Click a diagram, an image, or a block of math in a page. The lightbox
+opens and shows the item across the full window. Thus you can read a
+diagram that is too wide for the reading column.
+
+When the lightbox opens, the full item is in view. An item that is smaller
+than the window shows at its usual size.
+
+| Control | Function |
+|---------|----------|
+| The "Zoom out" button, or the key `-` | Decreases the zoom. |
+| The "Zoom in" button, or the key `+` | Increases the zoom. |
+| The "Fit to the window" button, or the key `0` | Shows the full item. |
+| The "Close" button, or Escape | Closes the lightbox. |
+
+| Action | Result |
+|--------|--------|
+| Turn the mouse wheel | Changes the zoom at the pointer. |
+| Pull the item or the background | Moves the view. |
+
+- An image that is a link opens the link, not the lightbox.
+- Inline math, tables, and code blocks do not open the lightbox.
+- The lightbox also opens from a hover preview and from the rendered
+  changes of a file.
+- The lightbox shows the item as it was at the time of the click. A live
+  reload does not change an open lightbox.
+- A change of the theme closes the lightbox.
+
 ## Keyboard shortcuts
 
 | Key | Function |
@@ -198,7 +228,7 @@ that heading.
 | Ctrl+O | Open the quick switcher. |
 | Ctrl+Shift+F | Open search. |
 | Ctrl+G | Open the graph. |
-| Escape | Close the open list or preview. In a narrow window, close the open sidebar. |
+| Escape | Close the open list, preview, or lightbox. In a narrow window, close the open sidebar. |
 
 On macOS, you can use Cmd as an alternative to Ctrl.
 

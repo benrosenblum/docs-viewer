@@ -56,7 +56,8 @@ Read before touching the matching area:
 - `docs/THEMES.md` — the theme properties and how to write a theme. Read
   before any change to `viewer.css` or `theme.css`.
 - `docs/MARKDOWN.md` — the supported Markdown and Obsidian syntax.
-- `docs/NAVIGATION.md` — pages, the file tree, search, the graph, shortcuts.
+- `docs/NAVIGATION.md` — pages, the file tree, search, the graph, the
+  lightbox, shortcuts.
 - `docs/GIT-DIFF.md` — tree marks, diff mode, the rendered and the source
   diff, the git commands. Read before any change to `git.go` or the diff code.
 - `docs/API-SPECS.md` — the spec vault and the API reference pages.

@@ -323,12 +323,17 @@
     );
   }
 
+  /** Returns the natural width of a rendered diagram, or 0. */
+  function mermaidWidth(svg) {
+    const box = svg.viewBox && svg.viewBox.baseVal;
+    return (box && box.width) || parseFloat(svg.style.maxWidth) || 0;
+  }
+
   /** Lets wide diagrams shrink to two thirds, then scroll horizontally. */
   function sizeMermaid(node) {
     const svg = node.querySelector(':scope > svg');
     if (!svg) return;
-    const box = svg.viewBox && svg.viewBox.baseVal;
-    const width = (box && box.width) || parseFloat(svg.style.maxWidth) || 0;
+    const width = mermaidWidth(svg);
     if (!width) return;
     svg.removeAttribute('height');
     svg.style.width = '100%';
@@ -1118,7 +1123,11 @@
 
     if (!isPlainLeftClick(event)) return;
     const link = target.closest('a[href]');
-    if (!link) return;
+    if (!link) {
+      const source = lightboxSource(target);
+      if (source) openLightbox(source);
+      return;
+    }
     let url;
     try {
       url = new URL(link.href, location.href);
@@ -1659,6 +1668,113 @@
     if (current.onClose) current.onClose();
     if (current.returnFocus && current.returnFocus.isConnected) current.returnFocus.focus({preventScroll: true});
     return true;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Lightbox: a diagram, an image, or block math at the size of the window
+
+  const LIGHTBOX_SOURCE = 'pre.mermaid.is-rendered, img:not(.is-unresolved), .math-block.is-rendered';
+  const LIGHTBOX_MARGIN = 24;
+  const LIGHTBOX_MIN_ZOOM = 0.1;
+  const LIGHTBOX_MAX_ZOOM = 8;
+
+  /** Returns the insert that a click on `target` opens, or null. A link wins. */
+  function lightboxSource(target) {
+    const source = target.closest(LIGHTBOX_SOURCE);
+    if (!source || !source.closest('.markdown-rendered') || target.closest('a')) return null;
+    // A drag that selects text also ends with a click.
+    return getSelection().isCollapsed ? source : null;
+  }
+
+  /** Returns a copy of `source` at its natural size, or null for an image with no size. */
+  function lightboxCopy(source) {
+    if (source instanceof HTMLImageElement) {
+      // An SVG file can have no size of its own. Then the size on the page applies.
+      const width = source.naturalWidth || source.width;
+      const height = source.naturalHeight || source.height;
+      return width && height ? h('img', {src: source.currentSrc || source.src, alt: source.alt, width, height}) : null;
+    }
+    const svg = source.querySelector(':scope > svg');
+    if (!svg) return source.cloneNode(true);
+    // Only the SVG: a copy of the pre.mermaid would be reset on a theme change.
+    const copy = svg.cloneNode(true);
+    const width = mermaidWidth(svg);
+    if (width) Object.assign(copy.style, {width: width + 'px', minWidth: '', maxWidth: ''});
+    return copy;
+  }
+
+  function openLightbox(source) {
+    const copy = lightboxCopy(source);
+    if (!copy) return;
+    closePreview();
+    const content = h('div', {className: 'lightbox-content'}, [copy]);
+    const stage = h('div', {className: 'lightbox-stage'}, [content]);
+    const view = {x: 0, y: 0, k: 1};
+    const apply = () => {
+      content.style.transform = `translate(${view.x}px, ${view.y}px) scale(${view.k})`;
+    };
+    const fitScale = () =>
+      Math.min(1, (stage.clientWidth - 2 * LIGHTBOX_MARGIN) / content.offsetWidth, (stage.clientHeight - 2 * LIGHTBOX_MARGIN) / content.offsetHeight);
+    const fit = () => {
+      view.k = fitScale();
+      view.x = (stage.clientWidth - content.offsetWidth * view.k) / 2;
+      view.y = (stage.clientHeight - content.offsetHeight * view.k) / 2;
+      apply();
+    };
+    const zoomAt = (sx, sy, factor) => {
+      zoomView(view, sx, sy, factor, Math.min(LIGHTBOX_MIN_ZOOM, fitScale()), LIGHTBOX_MAX_ZOOM);
+      apply();
+    };
+    const zoom = (factor) => zoomAt(stage.clientWidth / 2, stage.clientHeight / 2, factor);
+    const button = (name, label, run) => {
+      const node = h('button', {type: 'button', className: 'icon-button', 'aria-label': label, title: label}, [icon(name)]);
+      node.addEventListener('click', run);
+      return node;
+    };
+    const dialog = h('div', {className: 'lightbox', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Lightbox', tabindex: '-1'}, [
+      stage,
+      h('div', {className: 'lightbox-toolbar'}, [
+        button('i-zoom-out', 'Zoom out (-)', () => zoom(1 / ZOOM_STEP)),
+        button('i-zoom-in', 'Zoom in (+)', () => zoom(ZOOM_STEP)),
+        button('i-fit', 'Fit to the window (0)', fit),
+        button('i-close', 'Close (Escape)', closeModal),
+      ]),
+    ]);
+    dialog.addEventListener('keydown', (event) => zoomKey(event, zoom, fit));
+    stage.addEventListener(
+      'wheel',
+      (event) => {
+        event.preventDefault();
+        const rect = stage.getBoundingClientRect();
+        zoomAt(event.clientX - rect.left, event.clientY - rect.top, wheelZoomFactor(event));
+      },
+      {passive: false},
+    );
+    // Pan: the offset of the view from the pointer stays the same during a drag.
+    let grab = null;
+    stage.addEventListener('pointerdown', (event) => {
+      if (event.button !== 0) return;
+      stage.setPointerCapture(event.pointerId);
+      grab = {x: view.x - event.clientX, y: view.y - event.clientY};
+    });
+    stage.addEventListener('pointermove', (event) => {
+      if (!stage.hasPointerCapture(event.pointerId)) return;
+      view.x = grab.x + event.clientX;
+      view.y = grab.y + event.clientY;
+      apply();
+    });
+
+    const app = document.querySelector('.app');
+    showModal('lightbox', dialog, () => {
+      app.inert = false;
+      document.removeEventListener('docsview:themechange', closeModal);
+    });
+    // The page behind the lightbox gets no focus.
+    app.inert = true;
+    // The copy has the colors of the theme at the time of the click.
+    document.addEventListener('docsview:themechange', closeModal);
+    dialog.focus();
+    fit();
   }
 
   // ---------------------------------------------------------------------------

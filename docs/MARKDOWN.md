@@ -265,6 +265,9 @@ pixels:
 
 The standard syntax `![alternative text](img/layout.svg)` also works.
 
+Click an image to open it in the lightbox. See
+[NAVIGATION.md](NAVIGATION.md#lightbox).
+
 ## Callouts
 
 A callout is a block quote whose first line is `[!type]`. Text after the
@@ -358,6 +361,8 @@ $$
 \bar{x} = \frac{1}{n} \sum_{i=1}^{n} x_i
 $$
 
+Click block math to open it in the lightbox. Inline math does not open it.
+
 ## Code
 
 A fenced code block with a language gets syntax colors. Each block has a
@@ -417,6 +422,9 @@ flowchart TD
 - A diagram that is wider than the reading column uses the width of the
   view. If it is still too wide, it becomes smaller, to a minimum of two
   thirds of its size. Then it gets a horizontal scroll.
+- Click a diagram to open it in the lightbox. The lightbox shows the full
+  diagram across the window, and you can change the zoom. See
+  [NAVIGATION.md](NAVIGATION.md#lightbox).
 - A diagram in a closed foldable callout renders when you open the
   callout.
 - If the source of a diagram has an error, the page shows the message and
@@ -450,6 +458,12 @@ and each other document in `docs/`. It fails on a front matter error, on a
 diagram that does not become a diagram block, and on a link to a heading
 that is absent in the same page. `docsview/markdown/render_test.go` covers
 each syntax with small cases.
+
+The lightbox has no automatic test, because the tests do not run a browser.
+It was checked in Chromium, in the light and the dark theme, with a
+temporary vault that had a wide diagram, images, and block math. The check
+included the zoom and the move of the view, each way to close the lightbox,
+a hover preview, the rendered changes of a file, a live reload, and print.
 
 [^goldmark]: goldmark is a CommonMark parser for Go that accepts
     extensions.

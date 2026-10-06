@@ -2040,6 +2040,65 @@ pre.code-block.source .line.is-target > .ln {
   from { opacity: 0; transform: translateY(-6px) scale(0.99); }
 }
 
+/* ---------- Lightbox ---------- */
+
+.markdown-rendered pre.mermaid.is-rendered,
+.markdown-rendered img,
+.markdown-rendered .math-block.is-rendered {
+  cursor: zoom-in;
+}
+
+/* A linked image keeps the cursor of the link. */
+.markdown-rendered a img,
+.markdown-rendered img.is-unresolved {
+  cursor: inherit;
+}
+
+.modal-backdrop[data-modal="lightbox"] {
+  align-items: stretch;
+  padding: 0;
+}
+
+.lightbox {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+  outline: none;
+  background: var(--bg-primary);
+}
+
+.lightbox-stage {
+  position: absolute;
+  inset: 0;
+  cursor: grab;
+  touch-action: none;
+}
+
+.lightbox-stage:active {
+  cursor: grabbing;
+}
+
+/* viewer.js sets the transform. The stage gets each pointer event. */
+.lightbox-content {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: max-content;
+  transform-origin: 0 0;
+  pointer-events: none;
+}
+
+.lightbox-content > * {
+  display: block;
+  margin: 0;
+}
+
+.lightbox-toolbar {
+  display: flex;
+  gap: 2px;
+  padding: 4px;
+}
+
 /* ---------- Hover preview ---------- */
 
 .hover-popover {
@@ -2108,22 +2167,27 @@ pre.code-block.source .line.is-target > .ln {
   cursor: pointer;
 }
 
-.graph-controls {
+/* A panel that floats in the top right corner of a view. */
+.graph-controls,
+.lightbox-toolbar {
   position: absolute;
   top: 12px;
   right: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-l);
+  background: color-mix(in srgb, var(--bg-secondary) 92%, transparent);
+  box-shadow: var(--shadow-s);
+  backdrop-filter: blur(6px);
+}
+
+.graph-controls {
   display: flex;
   flex-direction: column;
   gap: 8px;
   min-width: 190px;
   padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-l);
-  background: color-mix(in srgb, var(--bg-secondary) 92%, transparent);
-  box-shadow: var(--shadow-s);
   color: var(--text-muted);
   font-size: var(--font-ui-small);
-  backdrop-filter: blur(6px);
 }
 
 .graph-controls-title {
