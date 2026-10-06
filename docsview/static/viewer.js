@@ -12,6 +12,7 @@
   const HOVER_DELAY = 350;
   const MIN_SIDEBAR = 180;
   const MAX_SIDEBAR = 640;
+  const ZOOM_STEP = 1.25;
   const IMAGE_EXT = /\.(png|jpe?g|gif|webp|svg|avif|bmp|ico|pdf)$/i;
   const RESERVED = /^\/_\/(assets|api|static)\/|^\/_\/events(\/|$)/;
   // Tab icon for pages without one, so the browser does not request /favicon.ico.
@@ -134,6 +135,15 @@
     view.x = sx - ((sx - view.x) / view.k) * k;
     view.y = sy - ((sy - view.y) / view.k) * k;
     view.k = k;
+  }
+
+  /** Handles the zoom keys: `zoom(factor)` for + and -, `fit()` for 0. */
+  function zoomKey(event, zoom, fit) {
+    if (event.key === '+' || event.key === '=') zoom(ZOOM_STEP);
+    else if (event.key === '-' || event.key === '_') zoom(1 / ZOOM_STEP);
+    else if (event.key === '0') fit();
+    else return;
+    event.preventDefault();
   }
 
   /** Returns the viewer URL for a repository path, like the server's URL(). */
@@ -2467,6 +2477,7 @@
     // The zoom math that the graph shares with the lightbox.
     wheelZoomFactor,
     zoomView,
+    zoomKey,
   };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);

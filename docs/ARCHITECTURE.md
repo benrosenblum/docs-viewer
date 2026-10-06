@@ -41,8 +41,9 @@ template is `docsview/templates/layout.html`. The binary embeds these
 files.
 
 `viewer.js` exports its public functions on `window.DocsViewer`. `graph.js`
-uses the zoom functions from there (`zoomView` and `wheelZoomFactor`), so
-that the graph and the lightbox have the same zoom. The page always loads
+uses the zoom functions from there (`zoomView`, `wheelZoomFactor`, and
+`zoomKey`), so that the graph and the lightbox have the same zoom and the
+same zoom keys. The page always loads
 `viewer.js` before `graph.js`.
 
 ## URL space

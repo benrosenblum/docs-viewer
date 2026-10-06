@@ -572,13 +572,14 @@
     }
 
     function onKey(event) {
-      if (event.key === '+' || event.key === '=') zoomAt(width / 2, height / 2, 1.25);
-      else if (event.key === '-' || event.key === '_') zoomAt(width / 2, height / 2, 0.8);
-      else if (event.key === '0') {
-        userMoved = false;
-        fit();
-      } else return;
-      event.preventDefault();
+      window.DocsViewer.zoomKey(
+        event,
+        (factor) => zoomAt(width / 2, height / 2, factor),
+        () => {
+          userMoved = false;
+          fit();
+        },
+      );
     }
 
     // ----- Controls ------------------------------------------------------------------
