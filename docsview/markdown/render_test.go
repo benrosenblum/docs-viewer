@@ -142,6 +142,14 @@ func TestEmbeds(t *testing.T) {
 			notWant: []string{"Section Three"}},
 		{name: "other file type", src: "![[data.csv]]",
 			want: []string{`<p><a class="internal-link" href="/docs/data.csv" data-path="docs/data.csv">data.csv</a></p>`}},
+		{name: "drawing", src: "![[sketch.excalidraw]] ![[sketch.excalidraw|The plan]] ![A sketch](sketch.excalidraw) ![[gone.excalidraw]]",
+			want: []string{
+				`<p><span class="excalidraw" data-src="/docs/sketch.excalidraw?raw=1">sketch.excalidraw</span>`,
+				`<span class="excalidraw" data-src="/docs/sketch.excalidraw?raw=1">The plan</span>`,
+				`<span class="excalidraw" data-src="/docs/sketch.excalidraw?raw=1">A sketch</span>`,
+				`<span class="internal-embed is-unresolved">gone.excalidraw</span>`,
+			},
+			notWant: []string{"<img"}},
 		{name: "unresolved", src: "![[nope]] ![[#Missing]] ![[other#Nope]] ![[gone.png|300]]",
 			want: []string{
 				`<span class="internal-embed is-unresolved">nope</span>`,

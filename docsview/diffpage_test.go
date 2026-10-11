@@ -80,6 +80,11 @@ func TestDiffMode(t *testing.T) {
 	}
 	contains(t, "changed image", get(t, h, "/docs/figure.png?diff=HEAD", 200).Body.String(), msgBinary)
 
+	// A changed drawing obeys diff mode; diff=off shows the drawing.
+	write(t, filepath.Join(repo, "docs/sketch.excalidraw"), `{"elements":[]}`)
+	contains(t, "changed drawing", get(t, h, "/docs/sketch.excalidraw", 200).Body.String(), `data-kind="diff"`)
+	contains(t, "drawing page", get(t, h, "/docs/sketch.excalidraw?diff=off", 200).Body.String(), `data-kind="drawing"`, `class="excalidraw"`)
+
 	// A note above the rendered diff limit falls back to the source diff.
 	large := "# Usage\n\n" + strings.Repeat("A long line of text.\n", maxRenderedDiff/20)
 	write(t, filepath.Join(repo, "docs/USAGE.md"), large)

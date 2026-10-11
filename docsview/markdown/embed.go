@@ -25,12 +25,22 @@ const (
 	embedImage
 	embedNote
 	embedCycle
+	embedDrawing
 )
 
 var (
 	imageExts   = []string{".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".avif", ".bmp"}
 	sizePattern = regexp.MustCompile(`^(\d+)(?:x(\d+))?$`)
 )
+
+// IsDrawing reports whether p is an Excalidraw scene file.
+func IsDrawing(p string) bool { return strings.ToLower(path.Ext(p)) == ".excalidraw" }
+
+// DrawingHTML returns the placeholder that the browser renders the drawing
+// at p into. The raw URL keeps a changed file out of diff mode.
+func DrawingHTML(p, label string) string {
+	return `<span class="excalidraw" data-src="` + html.EscapeString(URL(p, "")+"?raw=1") + `">` + html.EscapeString(label) + `</span>`
+}
 
 var kindEmbedBlock = ast.NewNodeKind("EmbedBlock")
 
@@ -63,6 +73,8 @@ func (st *renderState) resolveEmbed(n *wikilink, fragment string) {
 		}
 	case ext == ".md":
 		st.transclude(n, fragment)
+	case IsDrawing(n.path):
+		n.kind = embedDrawing
 	default:
 		n.kind = embedLink
 	}
@@ -241,6 +253,8 @@ func writeEmbed(w util.BufWriter, n *wikilink) {
 		_, _ = w.WriteString(`<div class="markdown-embed is-cycle" data-path="` + html.EscapeString(n.path) + `">`)
 		writeInternalLink(w, n)
 		_, _ = w.WriteString("</div>\n")
+	case embedDrawing:
+		_, _ = w.WriteString(DrawingHTML(n.path, n.label()))
 	default:
 		writeInternalLink(w, n)
 	}

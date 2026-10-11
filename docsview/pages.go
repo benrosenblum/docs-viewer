@@ -18,7 +18,7 @@ import (
 
 // page is the template model shared by every view.
 type page struct {
-	Kind      string // note, source, apispec, diff, folder, search, graph, or missing.
+	Kind      string // note, source, drawing, apispec, diff, folder, search, graph, or missing.
 	Title     string
 	Path      string
 	Name      string
@@ -223,8 +223,8 @@ func (h *Handler) isSpec(p string) bool {
 	return h.specVault != "" && within(p, h.specVault) && (ext == ".yaml" || ext == ".yml")
 }
 
-// file serves images and raw requests as bytes, specs as API reference
-// pages, and other text as a source page.
+// file serves images and raw requests as bytes, drawings as drawing pages,
+// specs as API reference pages, and other text as a source page.
 func (h *Handler) file(w http.ResponseWriter, r *http.Request, idx *index, p string) {
 	raw := r.URL.Query().Get("raw") != ""
 	if contentType, ok := rawTypes[strings.ToLower(path.Ext(p))]; ok || raw {
@@ -250,6 +250,12 @@ func (h *Handler) file(w http.ResponseWriter, r *http.Request, idx *index, p str
 	pg.Crumbs[len(pg.Crumbs)-1].Name = pg.Name
 	pg.Backlinks = idx.backlinks(p)
 	pg.Git = h.controls(idx, p, baseOff)
+	if markdown.IsDrawing(p) {
+		pg.Kind = "drawing"
+		pg.Body = template.HTML(markdown.DrawingHTML(p, pg.Name))
+		h.render(w, r, http.StatusOK, pg)
+		return
+	}
 	if h.isSpec(p) {
 		// The toggle selects a form of the page, so it keeps diff mode off.
 		u := markdown.URL(p, "")

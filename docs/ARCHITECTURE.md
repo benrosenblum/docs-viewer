@@ -110,7 +110,7 @@ flowchart TD
     Build --> Index
     Index --> Kind{"Kind of path"}
     Kind --> Note["Note page"]
-    Kind --> Other["Folder, source,<br/>spec, diff, or file"]
+    Kind --> Other["Folder, source,<br/>drawing, spec,<br/>diff, or file"]
 ```
 
 For a repository path, the handler selects the page as follows:
@@ -122,13 +122,16 @@ For a repository path, the handler selects the page as follows:
 3. A note gives the note page. The HTML of a vault note comes from the
    index. A note outside the vaults renders for the request.
 4. An image, a PDF file, or a `raw=1` request gives the bytes of the file.
-5. A YAML file in the spec vault gives the API reference page.
-6. Other text gives the source page.
+5. An Excalidraw drawing (`.excalidraw`) gives the drawing page. The page
+   holds a placeholder. The browser gets the file with `raw=1` and renders
+   it.
+6. A YAML file in the spec vault gives the API reference page.
+7. Other text gives the source page.
 
 The server renders each page in full. The script `viewer.js` then adds the
 behavior: it gets the next page with `fetch` and replaces the parts of the
-page, so that a link does not cause a full page load. Mermaid, KaTeX, and
-Redoc run in the browser.
+page, so that a link does not cause a full page load. Mermaid, KaTeX,
+Redoc, and the Excalidraw export run in the browser.
 
 ## Live reload
 
@@ -198,6 +201,11 @@ base-uri 'self'; form-action 'self'
   host.
 - Raw HTML in a note shows, but a script in it does not run.
 - `style-src` permits inline styles, because Mermaid and KaTeX set them.
+- The Excalidraw export library tries to make each font smaller before it
+  puts the font into a drawing. The policy blocks the first step of this
+  (`fetch` of a `data:` URL), and the library then uses the full font. For
+  each font of a drawing, the browser console shows three error messages.
+  These messages are not a fault.
 - An SVG file that opens as a file gets a stricter policy with `sandbox`.
 - The API reference page adds `worker-src 'self' blob:`. See
   [API-SPECS.md](API-SPECS.md#content-security-policy).
@@ -211,17 +219,20 @@ base-uri 'self'; form-action 'self'
 | The size of a source page | 2 MiB |
 | The size of a note for the rendered diff | 1 MiB |
 | The size of a file for syntax colors in the source diff | 256 KiB |
+| The size of a drawing | 8 MiB |
 | The depth of embeds in embeds | 3 |
 | The commits in a file history | 100 |
 | The notes in the search results | 50, with 5 text lines for each note |
 | The time for one git command | 5 seconds |
 
 A file above a limit gets a message in the page. The viewer does not read
-it into memory.
+it into memory. The browser applies the limit of a drawing, because the
+browser renders it.
 
 ## Pinned assets
 
-Mermaid, KaTeX, and Redoc are not in the repository of the viewer. The
+Mermaid, KaTeX, Redoc, and the Excalidraw export library
+(`@excalidraw/utils`) are not in the repository of the viewer. The
 manifest `cmd/docs-viewer/docs-assets.json` pins them, and the binary
 embeds the manifest.
 
@@ -270,6 +281,23 @@ It is also the `<version>` in `/_/assets/<version>/`. Thus, a changed
 manifest gives a new directory and new URLs, and the browser cannot use an
 old file.
 
+The install has these limits. It refuses an archive or a file above its
+limit.
+
+| Limit | Value |
+|-------|-------|
+| The size of an archive | 96 MiB |
+| The size of a file from an archive | 32 MiB |
+| The time for one download | 10 minutes |
+
+The Excalidraw archive sets these values. It has a size of 65 MB, and its
+one script has a size of 20 MB. The script contains each font of Excalidraw
+as text, because an export must not use the network. The font for Chinese,
+Japanese, and Korean text is the largest part. No published build has the
+fonts as separate files in a form that the viewer can load without a build
+step. In a browser, the import of the script takes approximately 0.1
+seconds.
+
 ### Change a pinned version
 
 1. Get the new archive and calculate its value:
@@ -293,8 +321,8 @@ old file.
    `docsview/templates/layout.html` and in `docsview/static/viewer.js`.
 5. Build the command again, because the binary embeds the manifest.
 6. Run `docs-viewer setup`. The install fails if a value is wrong.
-7. Open a page with a diagram, a page with math, and an API reference
-   page. Examine them in light and in dark.
+7. Open a page with a diagram, a page with math, a drawing, and an API
+   reference page. Examine them in light and in dark.
 
 The old `bundle-<hash>` directory stays until you delete it.
 

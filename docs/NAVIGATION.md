@@ -38,6 +38,7 @@ The viewer shows a file by its type:
 |------|------|
 | A note | The rendered note, with its properties, outline, and backlinks. |
 | An image or a PDF file | The file itself. |
+| An Excalidraw drawing (`.excalidraw`) | The drawing, in the colors of the theme. Add `?raw=1` to the URL to get the JSON source. |
 | A YAML file in the spec vault | An API reference. See [API-SPECS.md](API-SPECS.md). |
 | Other text | A source page: syntax colors, line numbers, the "Raw" link, the "Wrap" button, and the "Copy" button. |
 | A binary file | A source page with the size of the file and no content. |
@@ -197,7 +198,7 @@ that heading.
 
 ## Lightbox
 
-Click a diagram, an image, or a block of math in a page. The lightbox
+Click a diagram, a drawing, an image, or a block of math in a page. The lightbox
 opens and shows the item across the full window. Thus you can read a
 diagram that is too wide for the reading column.
 

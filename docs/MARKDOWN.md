@@ -238,7 +238,8 @@ target in the page.
 | `![[image.png]]` | The image. |
 | `![[image.png\|300]]` | The image with a width of 300 pixels. |
 | `![[image.png\|300x200]]` | The image with a width and a height. |
-| `![[file.pdf]]` | A link to the file. Only notes and images show their content. |
+| `![[sketch.excalidraw]]` | The Excalidraw drawing. |
+| `![[file.pdf]]` | A link to the file. Only notes, images, and drawings show their content. |
 
 ### A section of a note
 
@@ -267,6 +268,24 @@ The standard syntax `![alternative text](img/layout.svg)` also works.
 
 Click an image to open it in the lightbox. See
 [NAVIGATION.md](NAVIGATION.md#lightbox).
+
+### A drawing
+
+The line `![[img/sketch.excalidraw]]` embeds an Excalidraw drawing:
+
+![[img/sketch.excalidraw]]
+
+The standard syntax `![alternative text](img/sketch.excalidraw)` also
+works.
+
+- The drawing has the colors of the light or the dark theme.
+- The drawing is not wider than the reading column. Click it to open it in
+  the lightbox.
+- The file must be an `.excalidraw` file, which contains JSON. The
+  `.excalidraw.md` files of the Obsidian Excalidraw plugin show as notes.
+- A size such as `|300` has no effect on a drawing.
+- When the file of an embedded drawing changes, load the page again. The
+  page of the drawing itself updates without a reload.
 
 ## Callouts
 
@@ -448,11 +467,12 @@ The viewer reads an Obsidian vault, but it is not Obsidian.
   its themes, its CSS snippets, and its settings. For the colors, see
   [[THEMES]].
 - **No canvas files.** A `.canvas` file opens as source.
-- **Embeds** show the content of notes and images only. An embed of a
-  different file is a link.
+- **Embeds** show the content of notes, images, and Excalidraw drawings
+  only. An embed of a different file is a link.
 - **Wikilinks** find files in the vaults, and files at a path relative to
   the note. Use a standard link for other files of the repository.
-- **Size.** A note larger than 8 MiB shows a message and no content.
+- **Size.** A note or a drawing larger than 8 MiB shows a message and no
+  content.
 
 ## How it was checked
 
@@ -467,6 +487,15 @@ It was checked in Chromium, in the light and the dark theme, with a
 temporary vault that had a wide diagram, images, and block math. The check
 included the zoom and the move of the view, each way to close the lightbox,
 a hover preview, the rendered changes of a file, a live reload, and print.
+
+`render_test.go` checks the placeholder that a drawing embed writes, and
+`docsview/docsview_test.go` checks the drawing page. The render of a
+drawing has no automatic test. It was checked in Chromium, in the light and
+the dark theme, with a temporary vault. The drawing had a rounded
+rectangle, an elbow arrow, a frame, an image, and text in two fonts. The
+check included the drawing page, an embed in a note and in a closed
+callout, a hover preview, the lightbox, a live reload, a file that is not
+JSON, and a file above the size limit.
 
 [^goldmark]: goldmark is a CommonMark parser for Go that accepts
     extensions.

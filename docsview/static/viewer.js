@@ -545,6 +545,62 @@
   }
 
   // ---------------------------------------------------------------------------
+  // Drawings (Excalidraw)
+
+  const MAX_DRAWING = 8 << 20;
+  let excalidrawLoad = null;
+
+  /** Imports the export module once. A failed import can be tried again. */
+  function loadExcalidraw() {
+    if (!excalidrawLoad) {
+      excalidrawLoad = import(assetBase() + '/excalidraw/index.js');
+      excalidrawLoad.catch(() => {
+        excalidrawLoad = null;
+      });
+    }
+    return excalidrawLoad;
+  }
+
+  function showDrawingError(node, message) {
+    node.classList.remove('is-rendered');
+    node.classList.add('is-error');
+    node.replaceChildren(h('span', {className: 'render-error', text: message}));
+  }
+
+  /** Replaces the content of an `.excalidraw` placeholder with the drawing in the current theme. */
+  async function renderDrawing(node) {
+    try {
+      const response = await fetch(node.dataset.src, {credentials: 'same-origin', cache: 'no-store'});
+      if (!response.ok) throw new Error('The file could not be read.');
+      if (Number(response.headers.get('Content-Length')) > MAX_DRAWING) {
+        showDrawingError(node, 'The drawing is too large to display.');
+        return;
+      }
+      const scene = await response.json();
+      const {exportToSvg} = await loadExcalidraw();
+      // The colors of the dark theme are in the SVG, thus also in a lightbox copy.
+      const appState = {...scene.appState, exportBackground: false, exportWithDarkMode: currentTheme() === 'dark'};
+      const svg = await exportToSvg({data: {elements: scene.elements, appState, files: scene.files}});
+      if (!node.isConnected) return;
+      node.replaceChildren(svg);
+      node.classList.remove('is-error');
+      node.classList.add('is-rendered');
+    } catch (err) {
+      showDrawingError(node, 'This drawing could not be rendered. ' + String((err && err.message) || err));
+    }
+  }
+
+  /** Renders the pending `.excalidraw` placeholders inside `scope`. */
+  function renderDrawings(scope) {
+    const pending = all('.excalidraw', scope).filter((node) => !node.classList.contains('is-rendered') && !node.classList.contains('is-error'));
+    return Promise.all(pending.map(renderDrawing));
+  }
+
+  function rerenderAllDrawings() {
+    return Promise.all(all('.excalidraw.is-rendered').map(renderDrawing));
+  }
+
+  // ---------------------------------------------------------------------------
   // Content enhancers
 
   function addHeadingAnchors(scope) {
@@ -665,7 +721,7 @@
       addCodeButtons(scope);
       markSearchResults(scope);
     }
-    return Promise.all([renderMath(scope), renderMermaid(scope), preview ? null : renderSpec(scope)]).then(() => undefined);
+    return Promise.all([renderMath(scope), renderMermaid(scope), renderDrawings(scope), preview ? null : renderSpec(scope)]).then(() => undefined);
   }
 
   // ---------------------------------------------------------------------------
@@ -1394,6 +1450,7 @@
     if (persist) storageSet(STORE_THEME, theme);
     syncThemeButtons();
     rerenderAllMermaid();
+    rerenderAllDrawings();
     rerenderSpec();
     document.dispatchEvent(new CustomEvent('docsview:themechange', {detail: {theme}}));
   }
@@ -1735,9 +1792,9 @@
   }
 
   // ---------------------------------------------------------------------------
-  // Lightbox: a diagram, an image, or block math at the size of the window
+  // Lightbox: a diagram, a drawing, an image, or block math at the size of the window
 
-  const LIGHTBOX_SOURCE = 'pre.mermaid.is-rendered, img:not(.is-unresolved), .math-block.is-rendered';
+  const LIGHTBOX_SOURCE = 'pre.mermaid.is-rendered, .excalidraw.is-rendered, img:not(.is-unresolved), .math-block.is-rendered';
   const LIGHTBOX_MARGIN = 24;
   const LIGHTBOX_MIN_ZOOM = 0.1;
   const LIGHTBOX_MAX_ZOOM = 8;

@@ -1,0 +1,53 @@
+{
+  "type": "excalidraw",
+  "version": 2,
+  "source": "docs-viewer",
+  "elements": [
+    {
+      "id": "file", "type": "rectangle", "x": 20, "y": 20, "width": 180, "height": 70,
+      "angle": 0, "strokeColor": "#1e1e1e", "backgroundColor": "#a5d8ff", "fillStyle": "hachure",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 1, "opacity": 100, "groupIds": [],
+      "frameId": null, "roundness": {"type": 3}, "seed": 101, "version": 1, "versionNonce": 1,
+      "isDeleted": false, "boundElements": null, "updated": 1, "link": null, "locked": false
+    },
+    {
+      "id": "file-text", "type": "text", "x": 60, "y": 42.5, "width": 100, "height": 25,
+      "angle": 0, "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 1, "opacity": 100, "groupIds": [],
+      "frameId": null, "roundness": null, "seed": 102, "version": 1, "versionNonce": 2,
+      "isDeleted": false, "boundElements": null, "updated": 1, "link": null, "locked": false,
+      "text": "Scene file", "originalText": "Scene file", "fontSize": 20, "fontFamily": 5,
+      "textAlign": "center", "verticalAlign": "top", "containerId": null, "lineHeight": 1.25,
+      "autoResize": true
+    },
+    {
+      "id": "arrow", "type": "arrow", "x": 208, "y": 55, "width": 84, "height": 0,
+      "angle": 0, "strokeColor": "#2f9e44", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 1, "opacity": 100, "groupIds": [],
+      "frameId": null, "roundness": {"type": 2}, "seed": 103, "version": 1, "versionNonce": 3,
+      "isDeleted": false, "boundElements": null, "updated": 1, "link": null, "locked": false,
+      "points": [[0, 0], [84, 0]], "lastCommittedPoint": null,
+      "startBinding": null, "endBinding": null, "startArrowhead": null, "endArrowhead": "arrow",
+      "elbowed": false
+    },
+    {
+      "id": "page", "type": "rectangle", "x": 300, "y": 20, "width": 180, "height": 70,
+      "angle": 0, "strokeColor": "#1e1e1e", "backgroundColor": "#b2f2bb", "fillStyle": "solid",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 1, "opacity": 100, "groupIds": [],
+      "frameId": null, "roundness": {"type": 3}, "seed": 104, "version": 1, "versionNonce": 4,
+      "isDeleted": false, "boundElements": null, "updated": 1, "link": null, "locked": false
+    },
+    {
+      "id": "page-text", "type": "text", "x": 350, "y": 42.5, "width": 80, "height": 25,
+      "angle": 0, "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 1, "opacity": 100, "groupIds": [],
+      "frameId": null, "roundness": null, "seed": 105, "version": 1, "versionNonce": 5,
+      "isDeleted": false, "boundElements": null, "updated": 1, "link": null, "locked": false,
+      "text": "Drawing", "originalText": "Drawing", "fontSize": 20, "fontFamily": 5,
+      "textAlign": "center", "verticalAlign": "top", "containerId": null, "lineHeight": 1.25,
+      "autoResize": true
+    }
+  ],
+  "appState": {"gridSize": 20, "viewBackgroundColor": "#ffffff"},
+  "files": {}
+}

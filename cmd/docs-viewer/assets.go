@@ -19,8 +19,8 @@ import (
 	"time"
 )
 
-// assetManifest pins the viewer's browser assets (Mermaid, KaTeX, Redoc) by version
-// and checksum. They install once under assetBase and are served offline.
+// assetManifest pins the viewer's browser assets (Mermaid, KaTeX, Redoc,
+// Excalidraw) by version and checksum. They install once under assetBase and are served offline.
 //
 //go:embed docs-assets.json
 var assetManifest []byte
@@ -98,7 +98,7 @@ func verifyAssets(root string, config assetConfig) error {
 }
 
 func setupAssets(ctx context.Context) (string, error) {
-	return installAssets(ctx, assetBase, assetManifest, &http.Client{Timeout: 2 * time.Minute})
+	return installAssets(ctx, assetBase, assetManifest, &http.Client{Timeout: 10 * time.Minute})
 }
 
 // assetFiles lists the servable "name/path" entries of a manifest.
@@ -167,7 +167,8 @@ func installAsset(ctx context.Context, stage string, asset assetSet, client *htt
 	if response.StatusCode != http.StatusOK {
 		return fmt.Errorf("download returned %s", response.Status)
 	}
-	const maxArchive = 32 << 20
+	// The Excalidraw archive is 65 MB and its script is 20 MB.
+	const maxArchive, maxEntry = 96 << 20, 32 << 20
 	data, err := io.ReadAll(io.LimitReader(response.Body, maxArchive+1))
 	if err != nil {
 		return err
@@ -194,7 +195,7 @@ func installAsset(ctx context.Context, stage string, asset assetSet, client *htt
 		if !wanted {
 			continue
 		}
-		if found[header.Name] || header.Typeflag != tar.TypeReg || header.Size > 16<<20 {
+		if found[header.Name] || header.Typeflag != tar.TypeReg || header.Size > maxEntry {
 			return fmt.Errorf("invalid archive entry %s", header.Name)
 		}
 		found[header.Name] = true
