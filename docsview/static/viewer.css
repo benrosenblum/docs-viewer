@@ -540,7 +540,6 @@ body[data-kind="source"] .content {
 
 .branch-name {
   min-width: 0;
-  max-width: 24ch;
   overflow: hidden;
   text-overflow: ellipsis;
 }

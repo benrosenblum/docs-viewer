@@ -38,8 +38,8 @@ the commit hash.
 
 In the header, the path of the page gets its space first:
 
-- The header cuts a name that is longer than 24 characters, or that it
-  has no room for. Point at the name to read all of it.
+- The header shows the full name when it has room. If not, it cuts the
+  name. Point at the name to read all of it.
 - The header hides the branch when the content column is narrower than
   700 pixels. Adjacent to the change count of a diff page, the limit is
   800 pixels.
