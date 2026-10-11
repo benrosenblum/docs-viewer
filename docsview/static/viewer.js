@@ -562,18 +562,24 @@
     return (code || pre).textContent;
   }
 
-  function addCopyButtons(scope) {
+  /** Adds the word wrap and the copy button to code blocks and source toolbars. */
+  function addCodeButtons(scope) {
     for (const pre of all('pre.code-block', scope)) {
       if (pre.classList.contains('source') || pre.parentElement.classList.contains('code-block-wrapper')) continue;
       const wrapper = h('div', {className: 'code-block-wrapper', 'data-lang': pre.dataset.lang || ''});
       pre.replaceWith(wrapper);
-      const button = h('button', {type: 'button', className: 'copy-code-button', 'aria-label': 'Copy code', title: 'Copy code'}, [icon('i-copy')]);
-      wrapper.append(pre, button);
+      const wrap = h('button', {type: 'button', className: 'code-block-button wrap-code-button', 'data-action': 'toggle-wrap', 'aria-label': 'Toggle word wrap', title: 'Toggle word wrap'}, [icon('i-wrap')]);
+      const copy = h('button', {type: 'button', className: 'code-block-button copy-code-button', 'aria-label': 'Copy code', title: 'Copy code'}, [icon('i-copy')]);
+      wrapper.append(pre, wrap, copy);
     }
     for (const toolbar of all('.source-toolbar', scope)) {
       if (toolbar.querySelector('.copy-code-button, [data-action="copy-source"]')) continue;
-      toolbar.append(h('button', {type: 'button', 'data-action': 'copy-source', title: 'Copy file contents'}, [icon('i-copy'), h('span', {text: 'Copy'})]));
+      toolbar.append(
+        h('button', {type: 'button', 'data-action': 'toggle-wrap', title: 'Toggle word wrap'}, [icon('i-wrap'), h('span', {text: 'Wrap'})]),
+        h('button', {type: 'button', 'data-action': 'copy-source', title: 'Copy file contents'}, [icon('i-copy'), h('span', {text: 'Copy'})]),
+      );
     }
+    syncWrapButtons();
   }
 
   async function copyText(text) {
@@ -656,7 +662,7 @@
     markExternalLinks(scope);
     if (!preview) {
       addHeadingAnchors(scope);
-      addCopyButtons(scope);
+      addCodeButtons(scope);
       markSearchResults(scope);
     }
     return Promise.all([renderMath(scope), renderMermaid(scope), preview ? null : renderSpec(scope)]).then(() => undefined);
@@ -1220,6 +1226,10 @@
         if (fold) fold.remove();
         return true;
       }
+      case 'toggle-wrap':
+        event.preventDefault();
+        toggleWrap();
+        return true;
       case 'copy-source': {
         event.preventDefault();
         const pre = document.querySelector('.source-view pre');
@@ -1510,6 +1520,20 @@
         button.setAttribute('aria-controls', side);
       }
     }
+  }
+
+  /** Changes the word wrap of all code blocks and source pages. */
+  function toggleWrap() {
+    const wrap = root.dataset.wrap !== 'on';
+    if (wrap) root.dataset.wrap = 'on';
+    else delete root.dataset.wrap;
+    writeLayout({wrap});
+    syncWrapButtons();
+  }
+
+  function syncWrapButtons() {
+    const pressed = root.dataset.wrap === 'on' ? 'true' : 'false';
+    for (const button of all('[data-action="toggle-wrap"]')) button.setAttribute('aria-pressed', pressed);
   }
 
   function ensureBackdrop() {

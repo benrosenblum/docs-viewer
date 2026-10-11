@@ -366,7 +366,9 @@ Click block math to open it in the lightbox. Inline math does not open it.
 ## Code
 
 A fenced code block with a language gets syntax colors. Each block has a
-copy button. The colors come from chroma, which knows many languages.
+word wrap button and a copy button. See
+[NAVIGATION.md](NAVIGATION.md#word-wrap) for the word wrap. The colors come
+from chroma, which knows many languages.
 
 ```go
 // Resolver answers questions about other files during one render.

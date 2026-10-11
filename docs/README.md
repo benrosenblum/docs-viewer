@@ -12,8 +12,8 @@ file.
 - [USAGE.md](USAGE.md): install the command, run it, the flags, the
   subcommands, and the files that it writes.
 - [NAVIGATION.md](NAVIGATION.md): the pages, the file tree, the outline,
-  the quick switcher, search, the graph, the lightbox, and the keyboard
-  shortcuts.
+  the quick switcher, search, the graph, the lightbox, the keyboard
+  shortcuts, and the word wrap.
 - [MARKDOWN.md](MARKDOWN.md): the Markdown and Obsidian syntax that the
   viewer supports. The page uses each syntax that it describes.
 - [GIT-DIFF.md](GIT-DIFF.md): the marks in the file tree, diff mode, the
