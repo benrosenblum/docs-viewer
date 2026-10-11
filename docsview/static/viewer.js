@@ -921,9 +921,9 @@
   let loadedLocation = location.pathname + location.search;
   let lastRendering = Promise.resolve();
 
-  function replacePart(id, doc) {
-    const next = doc.getElementById(id);
-    const current = byId(id);
+  function replacePart(selector, doc) {
+    const next = doc.querySelector(selector);
+    const current = document.querySelector(selector);
     if (!next || !current) return false;
     current.replaceWith(document.adoptNode(next));
     return true;
@@ -966,7 +966,8 @@
 
   /**
    * Replaces page parts with those of `doc`. `parts.main`, `parts.right`,
-   * and `parts.tree` ('swap' or 'active') choose what changes.
+   * and `parts.tree` ('swap' or 'active') choose what changes. The title
+   * and the branch always change: a branch switch can keep each part.
    */
   function applyDocument(doc, parts) {
     const wasGraph = document.body.dataset.kind === 'graph';
@@ -976,16 +977,18 @@
     if (parts.main) {
       closePicker();
       lastChange = null;
-      replacePart('main', doc);
-      document.title = doc.title;
+      replacePart('#main', doc);
       syncBodyAttributes(doc.body);
+    } else {
+      replacePart('.view-header .branch', doc);
     }
-    if (parts.right) replacePart('right', doc);
+    document.title = doc.title;
+    if (parts.right) replacePart('#right', doc);
     if (parts.tree === 'swap') {
-      replacePart('file-tree', doc);
+      replacePart('#file-tree', doc);
       applyTreeState();
     } else if (parts.tree === 'active' && !syncTreeActive(doc)) {
-      replacePart('file-tree', doc);
+      replacePart('#file-tree', doc);
       applyTreeState();
     }
     syncChrome();

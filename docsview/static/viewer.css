@@ -519,6 +519,32 @@ body[data-kind="source"] .content {
   white-space: nowrap;
 }
 
+/* The branch shrinks before the path does, down to its icon. The large
+   factor keeps the path whole: a part of a pixel less shows an ellipsis. */
+.branch {
+  display: inline-flex;
+  flex: 0 1000000 auto;
+  align-items: center;
+  gap: 4px;
+  min-width: 14px;
+  margin: 0 4px;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  white-space: nowrap;
+}
+
+.branch .icon {
+  width: 14px;
+  height: 14px;
+}
+
+.branch-name {
+  min-width: 0;
+  max-width: 24ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .live-status {
   position: relative;
   flex: none;
@@ -2473,8 +2499,16 @@ body[data-kind="graph"] [data-action="toggle-right"] {
   white-space: nowrap;
 }
 
-/* A narrow header has no room for the count, then for the two buttons. */
+/* A narrow header has no room for the branch, first next to the count,
+   then for the count, then for the two buttons. */
+@container (max-width: 800px) {
+  .view-header:has(.diff-nav) .branch {
+    display: none;
+  }
+}
+
 @container (max-width: 700px) {
+  .branch,
   .diff-count {
     display: none;
   }

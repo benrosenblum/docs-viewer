@@ -141,7 +141,9 @@ The page opens an event stream at `/_/events?path=<repository path>`
 3. When a value is different, the handler sends a `change` event. The
    event says which of the two changed.
 4. The page gets its URL again and replaces the changed parts. It keeps
-   the scroll position.
+   the scroll position. It always replaces the tab title and the branch
+   in the header, because a branch change can leave the page state as it
+   is.
 
 | Value | Contents |
 |-------|----------|

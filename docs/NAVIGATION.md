@@ -73,7 +73,7 @@ A file that is too large shows a message and no content. The limits are
 | Part | Contents |
 |------|----------|
 | Left sidebar | The name of the repository folder, which opens the home note. The buttons for the quick switcher, search, the graph, "Collapse all folders", and the theme. The file tree. |
-| Header | The button for the left sidebar, the path of the page, the page controls, the live reload status, and the button for the right sidebar. |
+| Header | The button for the left sidebar, the path of the page, the current branch, the page controls, the live reload status, and the button for the right sidebar. |
 | Content | The page. |
 | Right sidebar | The outline and the linked mentions. |
 
@@ -81,6 +81,9 @@ Pull an edge of a sidebar to change its width. Double-click the edge to
 get the initial width again. The header buttons hide and show the
 sidebars. In a window narrower than 900 pixels, a sidebar opens above the
 content.
+
+With git, the header and the title of the browser tab show the current
+branch. See [GIT-DIFF.md](GIT-DIFF.md#current-branch).
 
 The browser keeps the widths, the hidden sidebars, the open folders, and
 the theme for this address.
@@ -257,6 +260,8 @@ The page updates when a file changes. You do not reload the page.
 - Change a file outside the vaults that a note links to or embeds: the
   page updates also.
 - Commit, stage, or change the branch: the marks in the file tree update.
+  A branch change also updates the branch in the header and in the tab
+  title.
 
 The dot in the header shows the connection. A short message, "Page
 updated" or "Files updated", shows after each update. If the server stops,

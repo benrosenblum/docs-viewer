@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{{.Title}} · {{or .Vault .Site}}</title>
+<title>{{.Title}} · {{or .Vault .Site}}{{with .Branch}} · {{.}}{{end}}</title>
 <script src="/_/static/theme.js"></script>
 <link rel="stylesheet" href="{{.Theme}}">
 <link rel="stylesheet" href="/_/static/viewer.css">
@@ -38,6 +38,9 @@
 {{- range $i, $c := .Crumbs}}{{if $i}}<span class="sep">/</span>{{end}}{{if $c.URL}}<a href="{{$c.URL}}">{{$c.Name}}</a>{{else}}<span class="current">{{$c.Name}}</span>{{end}}{{end}}
 {{- if not .Crumbs}}<span class="current">{{.Title}}</span>{{end -}}
 </nav>
+{{- with .Branch}}
+<span class="branch" title="{{.}}">{{icon "branch"}}<span class="branch-name">{{.}}</span></span>
+{{- end}}
 {{- if .Outside}}
 <span class="badge badge-outside" title="This repository file is outside {{range $i, $v := .Vaults}}{{if $i}} and {{end}}{{$v}}/{{end}}">Outside vault</span>
 {{- end}}
