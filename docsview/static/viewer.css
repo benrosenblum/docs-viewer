@@ -1343,7 +1343,10 @@ pre.code-block:not(.source) .line::before {
   padding-right: 74px;
 }
 
+/* The full width, so that the float below is at the edge of the block. */
 html[data-wrap] .code-block-wrapper .line:first-child > .cl {
+  flex: 1;
+  min-width: 0;
   padding-right: 0;
 }
 
