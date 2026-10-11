@@ -225,6 +225,18 @@ func (s *gitState) dirty(dir string) bool {
 	return false
 }
 
+// ref returns the current branch, else the short hash of a detached HEAD,
+// else "".
+func (s *gitState) ref() string {
+	if s == nil {
+		return ""
+	}
+	if s.branch != "" {
+		return s.branch
+	}
+	return s.head[:min(7, len(s.head))]
+}
+
 // key returns the stat lines of the git files that a commit, a stage, a
 // reset, or a checkout changes.
 func (g *gitRepo) key() string {

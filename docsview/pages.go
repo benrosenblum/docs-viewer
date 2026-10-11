@@ -23,6 +23,7 @@ type page struct {
 	Path      string
 	Name      string
 	Site      string   // The repository directory name.
+	Branch    string   // The current branch or the short HEAD hash, or "" without git.
 	Vault     string   // The vault directory that contains Path, or "".
 	Vaults    []string // All vault directories.
 	SpecVault string   // The vault of OpenAPI specs, or "".
@@ -77,7 +78,8 @@ func icon(name string) template.HTML {
 
 // newPage fills the parts of the layout that depend only on the location.
 func (h *Handler) newPage(idx *index, kind, p string) *page {
-	pg := &page{Kind: kind, Path: p, Site: h.name, Vaults: h.vaults, SpecVault: h.specVault, AssetBase: h.assetBase, Theme: h.themeURL, Tree: viewTree(idx.tree, p, h.gitState(idx))}
+	state := h.gitState(idx)
+	pg := &page{Kind: kind, Path: p, Site: h.name, Branch: state.ref(), Vaults: h.vaults, SpecVault: h.specVault, AssetBase: h.assetBase, Theme: h.themeURL, Tree: viewTree(idx.tree, p, state)}
 	if p != "" {
 		pg.Vault = h.vaultOf(p)
 		pg.Outside = pg.Vault == ""

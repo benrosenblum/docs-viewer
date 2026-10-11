@@ -101,8 +101,8 @@ func TestDiffWithoutGit(t *testing.T) {
 	for _, target := range []string{"/docs/README.md", "/docs/README.md?diff=HEAD", "/docs/README.md?diff=--x"} {
 		page := get(t, h, target, 200).Body.String()
 		contains(t, target, page, `data-kind="note"`)
-		if strings.Contains(page, "diff-picker") || strings.Contains(page, "data-git") {
-			t.Errorf("%s has diff controls", target)
+		if strings.Contains(page, "diff-picker") || strings.Contains(page, "data-git") || strings.Contains(page, `class="branch"`) {
+			t.Errorf("%s has diff controls or a branch", target)
 		}
 	}
 	get(t, h, "/_/api/history?path=docs/README.md", 404)
@@ -150,6 +150,22 @@ func TestTreeMarks(t *testing.T) {
 	page = get(t, h, "/docs/README.md", 200).Body.String()
 	contains(t, "tree", page, `data-path="docs/USAGE.md" data-git="M"`, `data-path="docs/ref/NEW.md" data-git="U"`, `data-path="docs/STAGED.md" data-git="A"`,
 		`<li class="tree-folder" data-path="docs" data-git-dirty>`, `<li class="tree-folder" data-path="docs/ref" data-git-dirty>`, `<li class="tree-folder" data-path="openspec"><details>`)
+}
+
+func TestBranch(t *testing.T) {
+	h, repo := gitFixture(t, diffSample)
+	check := func(ref string) {
+		t.Helper()
+		contains(t, "note on "+ref, get(t, h, "/docs/USAGE.md", 200).Body.String(), "<title>Usage · docs · "+ref+"</title>", `<span class="branch-name">`+ref+"</span>")
+		// A page with no file controls shows the branch also.
+		contains(t, "search on "+ref, get(t, h, "/_/search", 200).Body.String(), "<title>Search · repo · "+ref+"</title>", `<span class="branch-name">`+ref+"</span>")
+	}
+	check("main")
+	runGit(t, repo, "switch", "-q", "-c", "feature/docs")
+	check("feature/docs")
+	// A detached HEAD shows the short hash.
+	runGit(t, repo, "switch", "-q", "--detach")
+	check(runGit(t, repo, "rev-parse", "HEAD")[:7])
 }
 
 func TestLiveReloadFromGit(t *testing.T) {
