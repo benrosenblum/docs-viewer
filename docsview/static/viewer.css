@@ -872,7 +872,7 @@ html.is-navigating .nav-progress {
 }
 
 /* A code block hides the background of its diff block. */
-.diff-block.is-flashing pre.code-block {
+.diff-block.is-flashing :is(.code-block-wrapper, pre.code-block) {
   animation: flash 1.6s ease-out;
 }
 
@@ -1304,30 +1304,59 @@ pre.code-block {
   white-space: pre;
 }
 
+/* The word wrap setting of the reader. A chroma line is a flex box, so its
+   text needs `anywhere` to get narrower than its longest word. */
+html[data-wrap] pre.code-block {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* Line numbers of a fenced code block. A source page has its own (.ln). */
+pre.code-block:not(.source) {
+  counter-reset: line;
+}
+
+pre.code-block:not(.source) .line::before {
+  content: counter(line);
+  counter-increment: line;
+  flex: none;
+  min-width: 2ch;
+  margin-right: 1.25em;
+  color: var(--text-faint);
+  text-align: right;
+  user-select: none;
+}
+
+/* The wrapper keeps a column to the right of the code for the buttons and
+   the language label, so that they do not cover the text. */
 .code-block-wrapper {
   position: relative;
   margin: 0 0 1em;
+  padding-right: 68px;
+  border-radius: var(--radius-m);
+  background-color: var(--code-bg);
 }
 
 .code-block-wrapper > pre.code-block {
   margin: 0;
+  padding-right: 8px;
 }
 
 .code-block-wrapper[data-lang]:not([data-lang=""])::before {
   content: attr(data-lang);
   position: absolute;
-  top: 8px;
-  right: 44px;
+  top: 34px;
+  right: 8px;
   color: var(--text-faint);
   font-family: var(--font-text);
   font-size: 11px;
-  line-height: 20px;
+  line-height: 14px;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.12s ease;
 }
 
-.copy-code-button {
+.code-block-button {
   position: absolute;
   top: 6px;
   right: 6px;
@@ -1345,19 +1374,29 @@ pre.code-block {
   transition: opacity 0.12s ease;
 }
 
-.copy-code-button .icon {
+.wrap-code-button {
+  right: 38px;
+}
+
+.code-block-button .icon {
   width: 15px;
   height: 15px;
 }
 
-.code-block-wrapper:hover .copy-code-button,
-.code-block-wrapper:hover::before,
-.copy-code-button:focus-visible,
+.code-block-wrapper:hover .code-block-button,
+.code-block-wrapper[data-lang]:hover::before,
+.code-block-button:focus-visible,
 .copy-code-button.is-copied {
   opacity: 1;
 }
 
-.copy-code-button:hover {
+.code-block-button:hover {
+  color: var(--text-normal);
+}
+
+.code-block-button[aria-pressed="true"],
+.source-toolbar button[aria-pressed="true"] {
+  border-color: var(--border-strong);
   color: var(--text-normal);
 }
 
@@ -1367,7 +1406,7 @@ pre.code-block {
 }
 
 @media (hover: none) {
-  .copy-code-button {
+  .code-block-button {
     opacity: 0.85;
   }
 }
@@ -2135,7 +2174,7 @@ pre.code-block.source .line.is-target > .ln {
 }
 
 .hover-popover .heading-anchor,
-.hover-popover .copy-code-button {
+.hover-popover .code-block-button {
   display: none;
 }
 
@@ -2978,7 +3017,7 @@ del.diff-word {
   .sidebar-backdrop,
   .toast,
   .nav-progress,
-  .copy-code-button,
+  .code-block-button,
   .heading-anchor,
   .hover-popover,
   .modal-backdrop,
@@ -3001,6 +3040,10 @@ del.diff-word {
 
   pre.code-block {
     white-space: pre-wrap;
+  }
+
+  .code-block-wrapper {
+    padding-right: 0;
   }
 
   .external-link::after {

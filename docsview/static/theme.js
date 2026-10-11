@@ -1,4 +1,4 @@
-// Applies the saved theme and sidebar layout before first paint.
+// Applies the saved theme, sidebar layout, and word wrap before first paint.
 'use strict';
 (function () {
   var root = document.documentElement;
@@ -20,5 +20,6 @@
     if (layout.right > 0) root.style.setProperty('--right-width', layout.right + 'px');
     if (layout.leftHidden) root.dataset.left = 'hidden';
     if (layout.rightHidden) root.dataset.right = 'hidden';
+    if (layout.wrap) root.dataset.wrap = 'on';
   }
 })();

@@ -39,7 +39,7 @@ The viewer shows a file by its type:
 | A note | The rendered note, with its properties, outline, and backlinks. |
 | An image or a PDF file | The file itself. |
 | A YAML file in the spec vault | An API reference. See [API-SPECS.md](API-SPECS.md). |
-| Other text | A source page: syntax colors, line numbers, the "Raw" link, and the "Copy" button. |
+| Other text | A source page: syntax colors, line numbers, the "Raw" link, the "Wrap" button, and the "Copy" button. |
 | A binary file | A source page with the size of the file and no content. |
 
 On a source page, the fragment `#L10` goes to line 10. Select a line
@@ -82,8 +82,8 @@ get the initial width again. The header buttons hide and show the
 sidebars. In a window narrower than 900 pixels, a sidebar opens above the
 content.
 
-The browser keeps the widths, the hidden sidebars, the open folders, and
-the theme for this address.
+The browser keeps the widths, the hidden sidebars, the open folders, the
+word wrap, and the theme for this address.
 
 ## File tree
 
@@ -245,6 +245,25 @@ dark theme.
 - Diagrams and API reference pages render again in the new theme.
 
 [THEMES.md](THEMES.md) tells you how to change the colors and the fonts.
+
+## Word wrap
+
+A long line in a code block or on a source page does not wrap. The block
+gets a horizontal scroll. The word wrap button changes this:
+
+- In a note, put the pointer on a code block. The word wrap button shows
+  to the left of the copy button.
+- On a source page, the "Wrap" button is above the code.
+
+The button changes all code blocks and all source pages together. A
+wrapped line continues below, and the line numbers of a source page stay
+in their column. Select the button again to get the horizontal scroll
+back.
+
+- The browser keeps the setting for this address.
+- The "Copy" button gives the text with its initial line breaks.
+- The source diff does not wrap.
+- A printed page always wraps.
 
 ## Live reload
 
