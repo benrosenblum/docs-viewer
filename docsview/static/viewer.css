@@ -1311,6 +1311,22 @@ html[data-wrap] pre.code-block {
   overflow-wrap: anywhere;
 }
 
+/* Line numbers of a fenced code block. A source page has its own (.ln). */
+pre.code-block:not(.source) {
+  counter-reset: line;
+}
+
+pre.code-block:not(.source) .line::before {
+  content: counter(line);
+  counter-increment: line;
+  flex: none;
+  min-width: 2ch;
+  margin-right: 1.25em;
+  color: var(--text-faint);
+  text-align: right;
+  user-select: none;
+}
+
 .code-block-wrapper {
   position: relative;
   margin: 0 0 1em;
