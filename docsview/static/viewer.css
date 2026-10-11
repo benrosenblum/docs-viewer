@@ -872,7 +872,7 @@ html.is-navigating .nav-progress {
 }
 
 /* A code block hides the background of its diff block. */
-.diff-block.is-flashing :is(.code-block-wrapper, pre.code-block) {
+.diff-block.is-flashing pre.code-block {
   animation: flash 1.6s ease-out;
 }
 
@@ -1327,26 +1327,39 @@ pre.code-block:not(.source) .line::before {
   user-select: none;
 }
 
-/* The wrapper keeps a column to the right of the code for the buttons and
-   the language label, so that they do not cover the text. */
 .code-block-wrapper {
   position: relative;
   margin: 0 0 1em;
-  padding-right: 68px;
-  border-radius: var(--radius-m);
-  background-color: var(--code-bg);
 }
 
 .code-block-wrapper > pre.code-block {
   margin: 0;
-  padding-right: 8px;
 }
 
+/* Room for the buttons at the end of the first line. Without word wrap, the
+   reader can scroll the line clear of them. With word wrap, only the first
+   row of the line is shorter. */
+.code-block-wrapper .line:first-child > .cl {
+  padding-right: 74px;
+}
+
+html[data-wrap] .code-block-wrapper .line:first-child > .cl {
+  padding-right: 0;
+}
+
+html[data-wrap] .code-block-wrapper .line:first-child > .cl::before {
+  content: "";
+  float: right;
+  width: 58px;
+  height: 1em;
+}
+
+/* The language label is in the bottom padding, where no code is. */
 .code-block-wrapper[data-lang]:not([data-lang=""])::before {
   content: attr(data-lang);
   position: absolute;
-  top: 34px;
-  right: 8px;
+  right: 10px;
+  bottom: 0;
   color: var(--text-faint);
   font-family: var(--font-text);
   font-size: 11px;
@@ -3040,10 +3053,6 @@ del.diff-word {
 
   pre.code-block {
     white-space: pre-wrap;
-  }
-
-  .code-block-wrapper {
-    padding-right: 0;
   }
 
   .external-link::after {
