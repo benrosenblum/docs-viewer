@@ -19,7 +19,8 @@ A theme sets the properties two times: for
 `html[data-theme="light"]` and for `html[data-theme="dark"]`. The script
 `theme.js` sets `data-theme` on the `html` element before the first paint.
 It uses the theme that the reader selected, else the setting of the
-operating system.
+operating system. The script also sets `data-wrap` on the `html` element
+when the reader set the [word wrap](NAVIGATION.md#word-wrap) to on.
 
 ```mermaid
 flowchart TD

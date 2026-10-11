@@ -56,6 +56,11 @@
   <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <path d="m5 12.5 4.5 4.5L19 7.5"/>
   </symbol>
+  <symbol id="i-wrap" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 6h18M3 18h5"/>
+    <path d="M3 12h14.5a3 3 0 0 1 0 6H13"/>
+    <path d="m15.5 15.5-2.5 2.5 2.5 2.5"/>
+  </symbol>
   <symbol id="i-external" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <path d="M14 4h6v6"/>
     <path d="M20 4l-9 9"/>
