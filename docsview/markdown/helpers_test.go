@@ -113,6 +113,7 @@ func testVault() vault {
 		"docs/other.md":           otherNote,
 		"docs/pic.png":            "",
 		"docs/data.csv":           "",
+		"docs/sketch.excalidraw":  "",
 		"docs/development.md":     "## Requirements and setup\n",
 		"docs/api.md":             "# API\n",
 		"docs/my file.md":         "x\n",

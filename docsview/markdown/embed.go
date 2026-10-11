@@ -25,6 +25,7 @@ const (
 	embedImage
 	embedNote
 	embedCycle
+	embedDrawing
 )
 
 var (
@@ -72,6 +73,8 @@ func (st *renderState) resolveEmbed(n *wikilink, fragment string) {
 		}
 	case ext == ".md":
 		st.transclude(n, fragment)
+	case IsDrawing(n.path):
+		n.kind = embedDrawing
 	default:
 		n.kind = embedLink
 	}
@@ -250,6 +253,8 @@ func writeEmbed(w util.BufWriter, n *wikilink) {
 		_, _ = w.WriteString(`<div class="markdown-embed is-cycle" data-path="` + html.EscapeString(n.path) + `">`)
 		writeInternalLink(w, n)
 		_, _ = w.WriteString("</div>\n")
+	case embedDrawing:
+		_, _ = w.WriteString(DrawingHTML(n.path, n.label()))
 	default:
 		writeInternalLink(w, n)
 	}

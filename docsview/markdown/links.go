@@ -100,7 +100,7 @@ func (st *renderState) resolveLink(n *ast.Link, source []byte) {
 }
 
 // resolveImage makes a relative image source absolute so it works in any
-// page that shows it.
+// page that shows it. A drawing becomes the same embed as ![[drawing]].
 func (st *renderState) resolveImage(n *ast.Image, source []byte) {
 	d := st.resolveDest(n.Destination)
 	if d.external || d.anchor {
@@ -121,6 +121,11 @@ func (st *renderState) resolveImage(n *ast.Image, source []byte) {
 		Embed:   true,
 		Context: linkContext(n, source),
 	})
+	if exists && IsDrawing(file) {
+		// The link is recorded above, so this node skips resolveWikilink.
+		w := &wikilink{ref: wikiRef{target: d.target, alias: plainText(n, source)}, embed: true, path: file, kind: embedDrawing}
+		n.Parent().ReplaceChild(n.Parent(), n, w)
+	}
 }
 
 func resolvedPath(file string, exists bool) string {
