@@ -872,7 +872,7 @@ html.is-navigating .nav-progress {
 }
 
 /* A code block hides the background of its diff block. */
-.diff-block.is-flashing pre.code-block {
+.diff-block.is-flashing :is(.code-block-wrapper, pre.code-block) {
   animation: flash 1.6s ease-out;
 }
 
@@ -1327,24 +1327,30 @@ pre.code-block:not(.source) .line::before {
   user-select: none;
 }
 
+/* The wrapper keeps a column to the right of the code for the buttons and
+   the language label, so that they do not cover the text. */
 .code-block-wrapper {
   position: relative;
   margin: 0 0 1em;
+  padding-right: 68px;
+  border-radius: var(--radius-m);
+  background-color: var(--code-bg);
 }
 
 .code-block-wrapper > pre.code-block {
   margin: 0;
+  padding-right: 8px;
 }
 
 .code-block-wrapper[data-lang]:not([data-lang=""])::before {
   content: attr(data-lang);
   position: absolute;
-  top: 8px;
-  right: 76px;
+  top: 34px;
+  right: 8px;
   color: var(--text-faint);
   font-family: var(--font-text);
   font-size: 11px;
-  line-height: 20px;
+  line-height: 14px;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.12s ease;
@@ -1378,7 +1384,7 @@ pre.code-block:not(.source) .line::before {
 }
 
 .code-block-wrapper:hover .code-block-button,
-.code-block-wrapper:hover::before,
+.code-block-wrapper[data-lang]:hover::before,
 .code-block-button:focus-visible,
 .copy-code-button.is-copied {
   opacity: 1;
@@ -3034,6 +3040,10 @@ del.diff-word {
 
   pre.code-block {
     white-space: pre-wrap;
+  }
+
+  .code-block-wrapper {
+    padding-right: 0;
   }
 
   .external-link::after {
