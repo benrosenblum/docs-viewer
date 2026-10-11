@@ -32,6 +32,15 @@ var (
 	sizePattern = regexp.MustCompile(`^(\d+)(?:x(\d+))?$`)
 )
 
+// IsDrawing reports whether p is an Excalidraw scene file.
+func IsDrawing(p string) bool { return strings.ToLower(path.Ext(p)) == ".excalidraw" }
+
+// DrawingHTML returns the placeholder that the browser renders the drawing
+// at p into. The raw URL keeps a changed file out of diff mode.
+func DrawingHTML(p, label string) string {
+	return `<span class="excalidraw" data-src="` + html.EscapeString(URL(p, "")+"?raw=1") + `">` + html.EscapeString(label) + `</span>`
+}
+
 var kindEmbedBlock = ast.NewNodeKind("EmbedBlock")
 
 // embedBlock replaces a paragraph that holds only embeds, so transcluded

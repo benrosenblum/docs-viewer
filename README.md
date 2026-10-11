@@ -9,8 +9,9 @@ live reload.
 - A file tree, an outline, backlinks, search, a quick switcher, and a link
   graph.
 - Obsidian syntax: wikilinks, embeds, callouts, tags, and properties.
-- Mermaid diagrams, KaTeX math, and syntax colors. A click opens a diagram,
-  an image, or block math in a lightbox with zoom.
+- Mermaid diagrams, Excalidraw drawings, KaTeX math, and syntax colors. A
+  click opens a diagram, a drawing, an image, or block math in a lightbox
+  with zoom.
 - Git: marks in the file tree, and a rendered diff and a source diff of each
   changed file.
 - OpenAPI specs as API reference pages.

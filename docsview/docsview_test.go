@@ -79,16 +79,17 @@ func get(t *testing.T, h http.Handler, target string, want int) *httptest.Respon
 }
 
 var sample = map[string]string{
-	"docs/README.md":           "# Documentation\n\nSee [[plan]], [[plan#Second part|the second part]], [[missing note]], and the [contract](../api/openapi.yaml).\n",
-	"docs/ref/plan.md":         "---\ntitle: The plan\naliases: [Roadmap]\ntags: [design]\n---\n\n# Plan\n\n## Second part\n\nBack to [the index](../README.md). A diagram:\n\n```mermaid\ngraph LR\n  A-->B\n```\n",
-	"docs/ref/figure.png":      "\x89PNG fixture",
-	"docs/.hidden.md":          "hidden note body",
-	"api/openapi.yaml":         "openapi: 3.1.0\ninfo:\n  title: Fixture\n",
-	"api/notes.md":             "# API notes\n",
-	"openspec/specs/x/spec.md": "# Spec\n\nSee [the docs](../../../docs/README.md).\n",
-	"node_modules/pkg/x.md":    "dependency",
-	".git/config":              "secret",
-	".local/data/save.db":      "save",
+	"docs/README.md":             "# Documentation\n\nSee [[plan]], [[plan#Second part|the second part]], [[missing note]], and the [contract](../api/openapi.yaml).\n",
+	"docs/ref/plan.md":           "---\ntitle: The plan\naliases: [Roadmap]\ntags: [design]\n---\n\n# Plan\n\n## Second part\n\nBack to [the index](../README.md). A diagram:\n\n```mermaid\ngraph LR\n  A-->B\n```\n",
+	"docs/ref/figure.png":        "\x89PNG fixture",
+	"docs/ref/sketch.excalidraw": "{\"type\":\"excalidraw\",\"elements\":[]}\n",
+	"docs/.hidden.md":            "hidden note body",
+	"api/openapi.yaml":           "openapi: 3.1.0\ninfo:\n  title: Fixture\n",
+	"api/notes.md":               "# API notes\n",
+	"openspec/specs/x/spec.md":   "# Spec\n\nSee [the docs](../../../docs/README.md).\n",
+	"node_modules/pkg/x.md":      "dependency",
+	".git/config":                "secret",
+	".local/data/save.db":        "save",
 }
 
 func TestRepositorySurface(t *testing.T) {
@@ -146,6 +147,14 @@ func TestRepositorySurface(t *testing.T) {
 	}
 	if image := get(t, h, "/docs/ref/figure.png", 200); image.Header().Get("Content-Type") != "image/png" || image.Body.String() != sample["docs/ref/figure.png"] {
 		t.Error("image")
+	}
+	// A drawing page holds a placeholder; the browser gets the raw scene.
+	drawing := get(t, h, "/docs/ref/sketch.excalidraw", 200).Body.String()
+	if !strings.Contains(drawing, `data-kind="drawing"`) || !strings.Contains(drawing, `<span class="excalidraw" data-src="/docs/ref/sketch.excalidraw?raw=1">sketch.excalidraw</span>`) {
+		t.Error("drawing page")
+	}
+	if scene := get(t, h, "/docs/ref/sketch.excalidraw?raw=1", 200).Body.String(); scene != sample["docs/ref/sketch.excalidraw"] {
+		t.Error("raw drawing")
 	}
 	asset := get(t, h, "/_/assets/0123456789abcdef/mermaid/mermaid.min.js", 200)
 	if !strings.Contains(asset.Header().Get("Cache-Control"), "immutable") || asset.Header().Get("Content-Type") != "text/javascript; charset=utf-8" {

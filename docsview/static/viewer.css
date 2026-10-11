@@ -1527,9 +1527,17 @@ pre.mermaid > svg {
   font-size: var(--font-ui-small);
 }
 
-img.internal-embed {
+img.internal-embed,
+.excalidraw {
   display: block;
   margin: 0.5em 0 1em;
+}
+
+/* An Excalidraw drawing fits the column, as an image does. */
+.excalidraw > svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
 }
 
 /* ---------- Source view ---------- */
@@ -2051,6 +2059,7 @@ pre.code-block.source .line.is-target > .ln {
 /* ---------- Lightbox ---------- */
 
 .markdown-rendered pre.mermaid.is-rendered,
+.markdown-rendered .excalidraw.is-rendered,
 .markdown-rendered img,
 .markdown-rendered .math-block.is-rendered {
   cursor: zoom-in;

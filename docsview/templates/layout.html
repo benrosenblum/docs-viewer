@@ -80,6 +80,11 @@
 {{.Body}}
 </div>
 </article>
+{{- else if eq .Kind "drawing"}}
+<article id="content" class="content content-wide markdown-rendered">
+<h1 class="inline-title">{{.Name}}</h1>
+{{.Body}}
+</article>
 {{- else if eq .Kind "apispec"}}
 <article id="content" class="content content-full">
 <div id="redoc" class="apispec" data-spec="{{.Spec.RawURL}}"><p class="pane-empty">Loading the API reference.</p></div>

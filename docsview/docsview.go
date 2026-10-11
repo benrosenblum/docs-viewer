@@ -1,6 +1,6 @@
 // Package docsview serves a read-only, Obsidian-style viewer for a
 // repository's documentation directory. Markdown renders on the server; the
-// browser adds navigation, search, the graph, Mermaid, and KaTeX.
+// browser adds navigation, search, the graph, Mermaid, KaTeX, and drawings.
 package docsview
 
 import (

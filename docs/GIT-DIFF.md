@@ -42,6 +42,10 @@ itself, because notes embed images with the bare URL. To see the diff page
 of a changed image, add `?diff=HEAD` to its URL. The page says that the
 file is binary.
 
+An Excalidraw drawing obeys the rule of diff mode. A changed drawing opens
+as the source diff of its JSON. Select **Page** in the header to see the
+drawing.
+
 ## URL parameters
 
 | Parameter | Value | Page |
