@@ -31,7 +31,7 @@ check: vet test
 ## docs-start: Start it in the background (.local/logs/docs.log)
 ## docs-stop: Stop the background viewer
 ## docs-status: Show whether it runs, and its URL
-## docs-setup: Fetch the pinned Mermaid, KaTeX, and Redoc assets
+## docs-setup: Fetch the pinned Mermaid, KaTeX, Redoc, and Excalidraw assets
 # A built binary, not `go run`: `docs-start` executes it again, detached.
 docs docs-start docs-stop docs-status docs-setup: build
 	@$(BIN) -addr $(DOCS_ADDR) -vaults docs,api -spec-vault api $(if $(filter docs,$@),run,$(@:docs-%=%))

@@ -15,10 +15,10 @@ and reads the documents in a browser. It is never deployed.
 - the **diff** (`docsview/linediff`): the line and word diff.
 
 Go 1.26, goldmark, chroma, yaml3. The browser side is hand-written
-JavaScript and CSS with no build step. Mermaid, KaTeX, and Redoc are pinned
-assets that the command downloads on the first run. A project uses the tool
-as a binary that its Makefile installs at a pinned version
-(`docs/USAGE.md`).
+JavaScript and CSS with no build step. Mermaid, KaTeX, Redoc, and the
+Excalidraw export library are pinned assets that the command downloads on
+the first run. A project uses the tool as a binary that its Makefile
+installs at a pinned version (`docs/USAGE.md`).
 
 This repo is generic. It names no project that uses it: not in code,
 comments, documents, tests, or commit messages.

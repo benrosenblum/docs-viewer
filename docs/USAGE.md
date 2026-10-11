@@ -147,7 +147,7 @@ The command writes only below `.local/` in the repository root.
 
 | Path | Contents |
 |------|----------|
-| `.local/tools/docs/bundle-<hash>/` | The pinned browser assets: `mermaid/`, `katex/`, and `redoc/`. |
+| `.local/tools/docs/bundle-<hash>/` | The pinned browser assets: `mermaid/`, `katex/`, `redoc/`, and `excalidraw/`. |
 | `.local/tools/docs/install.lock` | The lock of the asset install. |
 | `.local/run/docs/lock` | The lock that a server holds while it runs. |
 | `.local/run/docs/state.json` | The process ID and the URL of the server. |
@@ -166,7 +166,7 @@ the assets again.
 
 ## First run
 
-The first `run`, `start`, or `setup` downloads three archives from the npm
+The first `run`, `start`, or `setup` downloads four archives from the npm
 registry (`registry.npmjs.org`):
 
 | Asset | Version | Function |
@@ -174,6 +174,11 @@ registry (`registry.npmjs.org`):
 | Mermaid | 11.17.2 | Renders diagrams. |
 | KaTeX | 0.18.7 | Renders math. |
 | Redoc | 2.5.4 | Renders API reference pages. |
+| Excalidraw utils | 0.1.5 | Renders drawings. |
+
+The Excalidraw archive has a size of 65 MB, thus the first run can take
+some minutes on a slow connection. The download has a time limit of 10
+minutes for each archive.
 
 The command does these steps:
 

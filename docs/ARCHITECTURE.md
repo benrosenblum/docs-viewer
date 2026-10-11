@@ -219,7 +219,8 @@ it into memory.
 
 ## Pinned assets
 
-Mermaid, KaTeX, and Redoc are not in the repository of the viewer. The
+Mermaid, KaTeX, Redoc, and the Excalidraw export library
+(`@excalidraw/utils`) are not in the repository of the viewer. The
 manifest `cmd/docs-viewer/docs-assets.json` pins them, and the binary
 embeds the manifest.
 
@@ -267,6 +268,23 @@ The install does these steps:
 It is also the `<version>` in `/_/assets/<version>/`. Thus, a changed
 manifest gives a new directory and new URLs, and the browser cannot use an
 old file.
+
+The install has these limits. It refuses an archive or a file above its
+limit.
+
+| Limit | Value |
+|-------|-------|
+| The size of an archive | 96 MiB |
+| The size of a file from an archive | 32 MiB |
+| The time for one download | 10 minutes |
+
+The Excalidraw archive sets these values. It has a size of 65 MB, and its
+one script has a size of 20 MB. The script contains each font of Excalidraw
+as text, because an export must not use the network. The font for Chinese,
+Japanese, and Korean text is the largest part. No published build has the
+fonts as separate files in a form that the viewer can load without a build
+step. In a browser, the import of the script takes approximately 0.1
+seconds.
 
 ### Change a pinned version
 

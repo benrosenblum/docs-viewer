@@ -138,6 +138,19 @@
           "sha256": "eed602ec32e00b2b9df1984fbcc26a687b1b3193ec01961389c4b8439e6edf73"
         }
       }
+    },
+    {
+      "name": "excalidraw",
+      "version": "0.1.5",
+      "url": "https://registry.npmjs.org/@excalidraw/utils/-/utils-0.1.5.tgz",
+      "sha256": "0f37a9511dcf04d4ff428cc4a751d8891676edf255e026412680a57efb6fe08a",
+      "license": "MIT",
+      "files": {
+        "package/dist/prod/index.js": {
+          "path": "index.js",
+          "sha256": "06f86a3efc9a8a9ef7070edbb2efaa0bab3cfd8069b6ed174796395cfc3168c3"
+        }
+      }
     }
   ]
 }
