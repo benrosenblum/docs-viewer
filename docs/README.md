@@ -16,8 +16,8 @@ file.
   shortcuts.
 - [MARKDOWN.md](MARKDOWN.md): the Markdown and Obsidian syntax that the
   viewer supports. The page uses each syntax that it describes.
-- [GIT-DIFF.md](GIT-DIFF.md): the marks in the file tree, diff mode, the
-  rendered diff, and the source diff.
+- [GIT-DIFF.md](GIT-DIFF.md): the marks in the file tree, the current
+  branch, diff mode, the rendered diff, and the source diff.
 - [API-SPECS.md](API-SPECS.md): the spec vault and the API reference
   pages.
 - [THEMES.md](THEMES.md): the theme properties, and how to write a theme

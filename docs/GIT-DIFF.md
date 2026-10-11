@@ -25,6 +25,27 @@ A folder that contains a marked file, at any depth, has a dot. A deleted
 file is not in the tree, so it has no mark. A clean work tree shows no
 marks.
 
+## Current branch
+
+Each page shows the current branch in two places:
+
+- The header shows the branch after the path of the page.
+- The title of the browser tab ends with the branch, such as
+  `USAGE · docs · main`.
+
+When `HEAD` is detached, the two places show the first 7 characters of
+the commit hash.
+
+In the header, the path of the page gets its space first:
+
+- The header shows the full name when it has room. If not, it cuts the
+  name. Point at the name to read all of it.
+- The header hides the branch when the content column is narrower than
+  700 pixels. Adjacent to the change count of a diff page, the limit is
+  800 pixels.
+
+The tab title always has the full name.
+
 ## Diff mode
 
 A file page can show a diff. The diff always compares a **base** version
@@ -232,7 +253,8 @@ the next change. The keys `P` and `N` do the same.
 ## Live reload
 
 The open page and the tree update without a manual reload after a file
-edit, a commit, a stage, an unstage, a reset, or a branch change.
+edit, a commit, a stage, an unstage, a reset, or a branch change. A branch
+change also updates the branch in the header and in the tab title.
 
 ```mermaid
 flowchart TD
@@ -278,8 +300,8 @@ The diff features are off in these cases:
 - The repository root is not in a git work tree.
 - Git refuses to read the repository.
 
-The viewer then shows no tree marks and no header controls, and has no
-diff mode. The URL parameters have no effect. At the start, the log has
+The viewer then shows no tree marks, no branch, and no header controls,
+and has no diff mode. The URL parameters have no effect. At the start, the log has
 one line with the cause:
 
 ```text
@@ -351,8 +373,9 @@ The Go tests use temporary repositories and need `git` on `PATH`:
   grammar, the status marks, the history with renames, and the content of
   a file at a commit.
 - `docsview/diffpage_test.go`: diff mode, the URL parameters, the change
-  count in the header, the tree marks, the history route, live reload from
-  git, and a viewer without git.
+  count in the header, the tree marks, the branch in the header and in the
+  title, the history route, live reload from git, and a viewer without
+  git.
 - `docsview/diffview_test.go`: the source diff, and its change count.
 - `docsview/linediff`: the line diff, the hunks, the pairs, and the word
   marks.
@@ -375,3 +398,14 @@ note, a note that does not scroll, and a source file:
 - the highlight on each type of marked block;
 - the count after a live reload;
 - the header at widths from 390 to 1400 pixels, with the sidebars open.
+
+The branch was examined in a browser also, with a temporary repository:
+
+- the branch in the header and in the tab title of a note, the search
+  page, and the graph;
+- the header of a note and of a diff page in the two themes;
+- a branch change and a detached `HEAD` with the page open: the two
+  places change with no reload, and an open base picker stays open;
+- a name of 52 characters, and the path of a diff page at widths from 390
+  to 1400 pixels, with the sidebars open;
+- a link to a heading with the text "Branch".
