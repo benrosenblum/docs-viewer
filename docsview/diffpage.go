@@ -67,27 +67,28 @@ func fileURL(p, diff, as string) string {
 // storage keys.
 const modeCookie = "docsview-mode"
 
-// diffMode returns the compare base of the cookie, else HEAD, and whether
-// diff mode is off.
+// diffMode returns the compare base of the cookie, or "" for the default
+// base, and whether diff mode is off.
 func diffMode(r *http.Request) (base string, off bool) {
 	c, err := r.Cookie(modeCookie)
 	if err != nil {
-		return baseHead, false
+		return "", false
 	}
 	v := c.Value
 	if v == baseOff {
-		return baseHead, true
+		return "", true
 	}
 	v, off = strings.CutPrefix(v, baseOff+":")
 	if v == baseOff || !validBase(v) {
-		return baseHead, off
+		return "", off
 	}
 	return v, off
 }
 
 // compareBase returns the base that the tree marks and the bare URLs of a
 // request compare with: the diff parameter when it names a base, else the
-// cookie, else HEAD. Diff mode off keeps the base of the marks.
+// cookie, else "" for the default base (see baseStatus). Diff mode off keeps
+// the base of the marks.
 func compareBase(r *http.Request) string {
 	if v := r.URL.Query().Get("diff"); v != baseOff && validBase(v) {
 		return v
@@ -103,7 +104,7 @@ func diffOff(r *http.Request) bool {
 }
 
 // gitState returns the shared git state of the vault with the marks against
-// base, or nil without git.
+// base ("" for the default), or nil without git.
 func (h *Handler) gitState(idx *index, base string) *gitState {
 	if h.git == nil {
 		return nil
@@ -328,6 +329,5 @@ func (h *Handler) historyJSON(w http.ResponseWriter, r *http.Request, idx *index
 		return
 	}
 	_, main := h.git.mainRef(r.Context())
-	branchBase := main != "" && state.branch != main && state.head != ""
-	writeJSON(w, r, historyResponse{Branch: state.branch, Main: main, BranchBase: branchBase, Commits: nonNil(commits)})
+	writeJSON(w, r, historyResponse{Branch: state.branch, Main: main, BranchBase: state.branchBase, Commits: nonNil(commits)})
 }

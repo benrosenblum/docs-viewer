@@ -182,8 +182,11 @@ func TestCompareBase(t *testing.T) {
 	}
 	branchMarks := []string{`data-base="branch"`, `data-path="docs/ref/NEW.md" data-git="A"`, `data-path="docs/LOOSE.md" data-git="U"`, `<li class="tree-folder" data-path="docs/ref" data-git-dirty>`}
 
-	// Without a cookie, the marks and the bare URLs compare with HEAD.
+	// Without a cookie, a branch compares with the main branch.
 	page := get(t, h, "/docs/USAGE.md", 200).Body.String()
+	contains(t, "default base", page, append(branchMarks, `data-kind="diff"`, "<span>Branch</span>")...)
+	// The HEAD cookie compares with HEAD.
+	page = getWith("/docs/USAGE.md", baseHead).Body.String()
 	contains(t, "HEAD base", page, `data-kind="note"`, `data-base="HEAD"`, `data-path="docs/LOOSE.md" data-git="U"`)
 	if strings.Contains(page, `data-git="M"`) {
 		t.Error("committed change has a mark against HEAD")
@@ -216,16 +219,26 @@ func TestCompareBase(t *testing.T) {
 
 	// With diff mode off, a bare URL of a changed file is the normal page.
 	// The marks keep the base, and Changes selects it.
-	page = getWith("/docs/LOOSE.md", baseOff).Body.String()
+	page = getWith("/docs/LOOSE.md", "off:HEAD").Body.String()
 	contains(t, "diff mode off", page, `data-kind="note"`, `data-base="HEAD"`, "<span>Compare</span>", `href="/docs/LOOSE.md?diff=HEAD" data-diff-mode="HEAD">Changes</a>`)
-	contains(t, "explicit base with diff mode off", getWith("/docs/LOOSE.md?diff=HEAD", baseOff).Body.String(), `data-kind="diff"`)
-	page = getWith("/docs/USAGE.md", "off:branch").Body.String()
-	contains(t, "diff mode off with a base", page, append(branchMarks, `data-kind="note"`, "<span>Branch</span>", `href="/docs/USAGE.md?diff=branch" data-diff-mode="branch">Changes</a>`)...)
+	contains(t, "explicit base with diff mode off", getWith("/docs/LOOSE.md?diff=HEAD", "off:HEAD").Body.String(), `data-kind="diff"`)
+	for _, off := range []string{"off:branch", baseOff} {
+		page = getWith("/docs/USAGE.md", off).Body.String()
+		contains(t, "diff mode "+off, page, append(branchMarks, `data-kind="note"`, "<span>Branch</span>", `href="/docs/USAGE.md?diff=branch" data-diff-mode="branch">Changes</a>`)...)
+	}
 
-	// A base that does not resolve compares with HEAD.
-	for _, bad := range []string{"0000000", "--output=/tmp/x", "off:0000000", "off:off", "offbranch"} {
+	// A value outside the grammar gives the default base. A base that does
+	// not resolve compares with HEAD.
+	for _, bad := range []string{"--output=/tmp/x", "off:off", "offbranch"} {
+		contains(t, "value "+bad, getWith("/docs/USAGE.md", bad).Body.String(), `data-base="branch"`)
+	}
+	for _, bad := range []string{"0000000", "off:0000000"} {
 		contains(t, "base "+bad, getWith("/docs/USAGE.md", bad).Body.String(), `data-kind="note"`, `data-base="HEAD"`)
 	}
+
+	// On the main branch, the default base is HEAD.
+	runGit(t, repo, "switch", "-q", "main")
+	contains(t, "main branch", get(t, h, "/docs/README.md", 200).Body.String(), `data-base="HEAD"`, "<span>Compare</span>")
 }
 
 func TestBranch(t *testing.T) {

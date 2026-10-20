@@ -1425,16 +1425,15 @@
   /**
    * Keeps the diff mode of a diff control for the next pages: the compare
    * base, or "off" with the base of the tree marks ("off:branch"). The
-   * server reads the cookie; HEAD is the default.
+   * server reads the cookie; without it, the base is the default.
    */
   function keepDiffMode(link) {
     let mode = link.dataset.diffMode;
     if (!mode) return;
     const base = document.body.dataset.base;
-    if (mode === 'off' && base && base !== 'HEAD') mode += ':' + base;
-    const age = mode === 'HEAD' ? '; max-age=0' : '';
+    if (mode === 'off' && base) mode += ':' + base;
     // The values are a base or "off", so they need no encoding.
-    document.cookie = 'docsview-mode=' + mode + '; path=/; samesite=strict' + age;
+    document.cookie = 'docsview-mode=' + mode + '; path=/; samesite=strict';
   }
 
   function pickerItem(href, title, note, current) {

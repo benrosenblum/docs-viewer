@@ -210,6 +210,9 @@ type gitState struct {
 	files   map[string]string // Root-relative path to its tree mark.
 	renamed map[string]string // Root-relative path to its top-level path at HEAD.
 	digest  string            // Changes with any mark.
+	// branchBase is true when HEAD is not on the main branch, so that
+	// "branch" names another base than HEAD.
+	branchBase bool
 }
 
 // statusOf returns the tree mark of a root-relative path, or "".
@@ -280,16 +283,26 @@ func (g *gitRepo) status(vaults []string, vaultVersion string) *gitState {
 		}
 		return g.state
 	}
-	g.state, g.stateKey = g.parseStatus(out), key
+	s := g.parseStatus(out)
+	_, main := g.mainRef(context.Background())
+	s.branchBase = main != "" && s.branch != main && s.head != ""
+	g.state, g.stateKey = s, key
 	return g.state
 }
 
 // baseStatus returns the git state of the vaults with the marks against
-// base. An untracked file keeps its mark. A base that does not resolve
+// base. An empty base is the default: branch off the main branch, else
+// HEAD. An untracked file keeps its mark. A base that does not resolve
 // gives the state against HEAD. Each result is cached like status, also a
 // failure, so that a stale base runs git only after a change.
 func (g *gitRepo) baseStatus(vaults []string, vaultVersion, base string) *gitState {
 	head := g.status(vaults, vaultVersion)
+	if base == "" {
+		base = baseHead
+		if head.branchBase {
+			base = baseBranch
+		}
+	}
 	if base == baseHead {
 		return head
 	}
@@ -316,7 +329,7 @@ func (g *gitRepo) baseStatus(vaults []string, vaultVersion, base string) *gitSta
 			files[p] = mark
 		}
 	}
-	s := &gitState{base: base, branch: head.branch, head: head.head, files: files, renamed: head.renamed}
+	s := &gitState{base: base, branch: head.branch, head: head.head, files: files, renamed: head.renamed, branchBase: head.branchBase}
 	s.sum()
 	g.bases[base] = baseState{key, s}
 	return s

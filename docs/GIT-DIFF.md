@@ -13,8 +13,9 @@ any file in `.git`.
 ## Marks in the file tree
 
 A vault file with changes against the compare base has a letter after its
-name. The compare base is `HEAD` until you select another base (see
-[Compare base](#compare-base)).
+name. On a branch, the compare base is the merge base with the main
+branch until you select another base. On the main branch, it is `HEAD`
+(see [Compare base](#compare-base)).
 
 | Mark | Meaning |
 |------|---------|
@@ -39,9 +40,17 @@ applies to all pages, not only to one file:
 - On the normal page, the base picker button shows the base, such as
   "Branch", instead of "Compare".
 
-Select a base in the base picker of a file page. The base stays when you
-open other pages, when you reload, and in a new tab. "Uncommitted
-changes" sets the default base, `HEAD`.
+The default base depends on the current branch:
+
+| Current branch | Default base |
+|----------------|--------------|
+| A branch that is not the main branch, or a detached `HEAD` | "Branch changes": the merge base with the main branch. |
+| The main branch, or a repository without a main branch | "Uncommitted changes": `HEAD`. |
+
+The viewer finds the default again on each request, so a branch switch
+changes it. Select a base in the base picker of a file page to replace
+the default. The base stays when you open other pages, when you reload,
+and in a new tab, also after a branch switch.
 
 ### Diff mode off
 
@@ -59,17 +68,19 @@ the picker also turns it on.
 ### The cookie
 
 The viewer keeps the mode in the cookie `docsview-mode`. The value is the
-compare base (`branch` or a commit hash), or `off` followed by the base
-when diff mode is off (`off`, `off:branch`, `off:<hash>`). No cookie
-means the base `HEAD` with diff mode on. The page sets the
+compare base (`HEAD`, `branch`, or a commit hash), or `off` followed by
+the base when diff mode is off (`off:HEAD`, `off:branch`, `off:<hash>`).
+No cookie means the default base with diff mode on; `off` alone means the
+default base with diff mode off. The page sets the
 cookie when you select **Page**, **Changes**, or an entry of the picker.
 A URL does not set it, so a hover preview (`diff=off`) or a link with a
 `diff` parameter does not change the mode. The cookie name does not
 start with `docsview:` like the browser storage keys, because a cookie
 name cannot contain a colon. The cookie expires when the browser closes.
 
-When the base in the cookie does not name a commit, for example a hash
-that a rebase removed, the viewer compares with `HEAD`.
+A cookie value that is not in this grammar gives the default base. When
+the base in the cookie does not name a commit, for example a hash that a
+rebase removed, the viewer compares with `HEAD`.
 
 ## Current branch
 
@@ -99,8 +110,10 @@ of the file with the current file in the work tree.
 
 - When a file has changes against the [compare base](#compare-base), its
   page opens in diff mode against that base. This applies to a bare URL,
-  such as `/docs/USAGE.md`. The default compare base is `HEAD`, so a bare
-  URL shows the uncommitted changes.
+  such as `/docs/USAGE.md`. On a branch, the default compare base is the
+  merge base with the main branch, so a bare URL shows all the changes of
+  the branch. On the main branch, it is `HEAD`, so a bare URL shows the
+  uncommitted changes.
 - When a file has no changes against the compare base, its page opens as
   the normal page.
 - When [diff mode is off](#diff-mode-off), each bare URL opens the normal
@@ -354,7 +367,9 @@ flowchart TD
   state is the state of the open file, the `HEAD` commit, and the mark of
   the file.
 - A commit changes the `HEAD` commit, so the page reloads. A bare URL then
-  obeys the rule of diff mode: after a commit, it shows the normal page.
+  obeys the rule of diff mode. With `HEAD` as the base, it shows the normal
+  page after a commit. With the branch as the base, it continues to show
+  the diff, because the commit is part of the branch.
 - A stage of an untracked file changes its mark from `U` to `A`. A stage
   of a modified file does not change its mark, so the page does not
   reload.
@@ -456,9 +471,10 @@ The Go tests use temporary repositories and need `git` on `PATH`:
   grammar, the status marks, the history with renames, and the content of
   a file at a commit.
 - `docsview/diffpage_test.go`: diff mode, the URL parameters, the change
-  count in the header, the tree marks, the compare base (the cookie, the
-  marks against the branch on each page, the bare URLs, diff mode off, and
-  a base that does not resolve), the branch in the header and in the title, the
+  count in the header, the tree marks, the compare base (the default on a
+  branch and on the main branch, the cookie, the marks against the branch
+  on each page, the bare URLs, diff mode off, and a base that does not
+  resolve), the branch in the header and in the title, the
   history route, live reload from git, and a viewer without git.
 - `docsview/diffview_test.go`: the source diff, and its change count.
 - `docsview/linediff`: the line diff, the hunks, the pairs, and the word
