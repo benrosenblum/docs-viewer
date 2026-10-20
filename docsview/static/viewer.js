@@ -960,6 +960,60 @@
     userScrolledAt = Date.now();
   }
 
+  // The blocks that a note page and its rendered diff have in common. The
+  // removed blocks of a diff are not in the page.
+  const ANCHOR_BLOCKS = '#content .markdown-body :is(h1, h2, h3, h4, h5, h6, p, li, pre, tr, hr)';
+
+  const anchorBlocks = () => all(ANCHOR_BLOCKS).filter((el) => !el.closest('.diff-removed'));
+  const blockKey = (el) => el.tagName + '\n' + el.textContent;
+
+  /** The source lines of the view with their current line numbers. */
+  function anchorLines() {
+    return all('#content tr.diff-line, #content .source-view [id^="L"]')
+      .map((el) => ({el, line: Number(el.tagName === 'TR' ? el.children[1].textContent : el.id.slice(1))}))
+      .filter((l) => l.line > 0);
+  }
+
+  /**
+   * The position of the view as content that the other forms of the file
+   * also show: the first source line or block at the top of the view, else
+   * the scroll ratio.
+   */
+  function viewAnchor() {
+    const container = view();
+    // The top of the file stays at the top.
+    if (!container || container.scrollTop === 0) return null;
+    const top = container.getBoundingClientRect().top;
+    const anchor = {ratio: container.scrollTop / Math.max(1, container.scrollHeight - container.clientHeight)};
+    const below = (el) => el.getBoundingClientRect().bottom > top;
+    const line = anchorLines().find((l) => below(l.el));
+    if (line) return Object.assign(anchor, {line: line.line, offset: line.el.getBoundingClientRect().top - top});
+    const blocks = anchorBlocks();
+    const block = blocks.find(below);
+    if (block) {
+      const key = blockKey(block);
+      const nth = blocks.slice(0, blocks.indexOf(block)).filter((el) => blockKey(el) === key).length;
+      Object.assign(anchor, {key, nth, offset: block.getBoundingClientRect().top - top});
+    }
+    return anchor;
+  }
+
+  /** Scrolls the view to an anchor of viewAnchor. */
+  function scrollToAnchor(anchor) {
+    const container = view();
+    if (!container) return;
+    let target = null;
+    if (anchor.line) {
+      // The last shown line at or before the anchor: a fold can hide it.
+      const lines = anchorLines().filter((l) => l.line <= anchor.line && l.el.getClientRects().length);
+      if (lines.length) target = lines[lines.length - 1].el;
+    } else if (anchor.key) {
+      target = anchorBlocks().filter((el) => blockKey(el) === anchor.key)[anchor.nth] || null;
+    }
+    if (target) container.scrollTop += target.getBoundingClientRect().top - container.getBoundingClientRect().top - anchor.offset;
+    else container.scrollTop = anchor.ratio * (container.scrollHeight - container.clientHeight);
+  }
+
   // ---------------------------------------------------------------------------
   // History state
 
@@ -1127,6 +1181,9 @@
     } else if (finalURL.href !== location.href) {
       history.replaceState(Object.assign({}, history.state), '', finalURL.href);
     }
+    // Another form of the same file, such as the page and its diff, keeps
+    // the position in the content.
+    const anchor = finalURL.pathname === new URL(loadedLocation, location.href).pathname ? viewAnchor() : null;
     loadedLocation = location.pathname + location.search;
     const rendering = applyDocument(result.doc, {main: true, right: true, tree: 'active'});
     const container = view();
@@ -1139,6 +1196,8 @@
       } else if (url.hash) {
         settleScroll(() => scrollToHash(url.hash, {flash: false}), rendering);
         flashTarget(url.hash);
+      } else if (anchor) {
+        settleScroll(() => scrollToAnchor(anchor), rendering);
       } else {
         container.scrollTop = 0;
       }

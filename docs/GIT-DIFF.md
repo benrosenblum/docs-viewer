@@ -184,6 +184,19 @@ A file page has these controls in its header:
 Each control changes the page without a full page load. The back button of
 the browser returns to the previous mode.
 
+A control keeps the position in the file. The viewer finds the first
+block or line at the top of the view, then shows the same block or line at
+the same position in the new form:
+
+| From | To | Anchor |
+|------|----|--------|
+| Rendered diff | Note page, and back | The first block that is also in the note: a heading, a paragraph, a list item, a code block, a table row, or a rule. A removed block is not in the note, so the viewer uses the next block. The text of the block identifies it. |
+| Source diff | Source page, and back | The first line with a current line number. In a collapsed run of unchanged lines, the viewer uses the last line that shows above it. |
+| Other pairs, such as a source diff and a note page | | The same fraction of the scroll height. |
+
+A page at the top stays at the top. A link to another file opens at the
+top of that file.
+
 ## Rendered diff
 
 The rendered diff is the default form for a note. It shows the note as the
@@ -501,4 +514,8 @@ a feature branch:
 - select "Normal page" with the Enter key, then reload: diff mode stays
   off;
 - the order of the picker list, and a file with 22 commits and its oldest
-  commit as the base: the list opens at the top.
+  commit as the base: the list opens at the top;
+- **Page** and **Changes** in a long note with removed and changed
+  paragraphs, and in a long source file: the same paragraph or line stays
+  at the same position in the two directions. A link to another file
+  opens at its top.
