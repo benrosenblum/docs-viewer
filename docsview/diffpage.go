@@ -61,30 +61,45 @@ func fileURL(p, diff, as string) string {
 	return u
 }
 
-// modeCookie holds the diff mode between pages: off, or the compare base.
-// The page sets it when a diff control is selected. A cookie name cannot
-// contain the colon of the storage keys.
+// modeCookie holds the diff mode between pages: the compare base, or "off"
+// or "off:<base>" when diff mode is off. The page sets it when a diff
+// control is selected. A cookie name cannot contain the colon of the
+// storage keys.
 const modeCookie = "docsview-mode"
 
-// cookieBase returns the valid value of the cookie, or "".
-func cookieBase(r *http.Request) string {
-	if c, err := r.Cookie(modeCookie); err == nil && validBase(c.Value) {
-		return c.Value
+// diffMode returns the compare base of the cookie, else HEAD, and whether
+// diff mode is off.
+func diffMode(r *http.Request) (base string, off bool) {
+	c, err := r.Cookie(modeCookie)
+	if err != nil {
+		return baseHead, false
 	}
-	return ""
+	v := c.Value
+	if v == baseOff {
+		return baseHead, true
+	}
+	v, off = strings.CutPrefix(v, baseOff+":")
+	if v == baseOff || !validBase(v) {
+		return baseHead, off
+	}
+	return v, off
 }
 
 // compareBase returns the base that the tree marks and the bare URLs of a
 // request compare with: the diff parameter when it names a base, else the
-// cookie, else HEAD. Diff mode off compares the marks with HEAD.
+// cookie, else HEAD. Diff mode off keeps the base of the marks.
 func compareBase(r *http.Request) string {
 	if v := r.URL.Query().Get("diff"); v != baseOff && validBase(v) {
 		return v
 	}
-	if v := cookieBase(r); v != "" && v != baseOff {
-		return v
-	}
-	return baseHead
+	base, _ := diffMode(r)
+	return base
+}
+
+// diffOff reports whether the cookie turns diff mode off.
+func diffOff(r *http.Request) bool {
+	_, off := diffMode(r)
+	return off
 }
 
 // gitState returns the shared git state of the vault with the marks against
@@ -119,7 +134,7 @@ func (h *Handler) diffBase(r *http.Request, idx *index, p string) string {
 		return baseOff
 	case set:
 		return values[0]
-	case cookieBase(r) == baseOff:
+	case diffOff(r):
 		return baseOff
 	}
 	state := h.gitState(idx, compareBase(r))
@@ -152,7 +167,7 @@ func (h *Handler) controls(r *http.Request, idx *index, p, base string) *gitCont
 	c := &gitControls{Path: p, Status: h.fileStatus(state, p), Base: base, Label: baseLabel(base), PageURL: fileURL(p, baseOff, ""), ChangesBase: state.base}
 	// A bare URL follows the file into and out of diff mode on live reload.
 	c.ChangesURL = fileURL(p, state.base, "")
-	if c.Status != "" && cookieBase(r) != baseOff {
+	if c.Status != "" && !diffOff(r) {
 		c.ChangesURL = fileURL(p, "", "")
 	}
 	c.ShowToggle = c.Status != "" || base != baseOff

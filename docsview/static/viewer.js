@@ -1364,14 +1364,18 @@
   }
 
   /**
-   * Keeps the diff mode of a diff control for the next pages: "off", or the
-   * compare base. The server reads the cookie; HEAD is the default.
+   * Keeps the diff mode of a diff control for the next pages: the compare
+   * base, or "off" with the base of the tree marks ("off:branch"). The
+   * server reads the cookie; HEAD is the default.
    */
   function keepDiffMode(link) {
-    const mode = link.dataset.diffMode;
+    let mode = link.dataset.diffMode;
     if (!mode) return;
+    const base = document.body.dataset.base;
+    if (mode === 'off' && base && base !== 'HEAD') mode += ':' + base;
     const age = mode === 'HEAD' ? '; max-age=0' : '';
-    document.cookie = 'docsview-mode=' + encodeURIComponent(mode) + '; path=/; samesite=strict' + age;
+    // The values are a base or "off", so they need no encoding.
+    document.cookie = 'docsview-mode=' + mode + '; path=/; samesite=strict' + age;
   }
 
   function pickerItem(href, title, note, current) {
@@ -1438,18 +1442,19 @@
           if (data.branchBase) {
             items.push(pickerItem(diffURL('branch', as), [h('span', {text: 'Branch changes'})], 'Compare with the merge base of ' + (data.branch || 'HEAD') + ' and ' + data.main, base === 'branch'));
           }
+          items.push(pickerItem(diffURL('off'), [h('span', {text: 'Normal page'})], 'Show the file as it is now', base === 'off'));
           const commits = Array.isArray(data.commits) ? data.commits : [];
           if (commits.length) items.push(h('div', {className: 'diff-picker-heading', role: 'presentation', text: 'History'}));
           for (const c of commits) {
             const note = c.author + ' · ' + formatDate(c.date) + (c.path && c.path !== path ? ' · ' + c.path : '');
             items.push(pickerItem(diffURL(c.hash, as), [h('span', {text: c.subject}), h('code', {className: 'diff-picker-hash', text: c.short})], note, isBase(c.hash)));
           }
-          items.push(h('div', {className: 'diff-picker-heading', role: 'presentation', text: 'Without changes'}));
-          items.push(pickerItem(diffURL('off'), [h('span', {text: 'Normal page'})], 'Show the file as it is now', base === 'off'));
           list.replaceChildren(...items);
           selection.reset();
           const current = list.querySelector('.is-current');
           if (current) selection.track(current);
+          // The list opens at the top, also when the current entry is a commit below.
+          list.scrollTop = 0;
         },
         () => {
           if (picker && picker.element === element) list.replaceChildren(h('p', {className: 'prompt-empty', text: 'The file history could not be loaded.'}));

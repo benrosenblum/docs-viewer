@@ -214,14 +214,16 @@ func TestCompareBase(t *testing.T) {
 		t.Errorf("page states: HEAD %q, branch %q", head, branch)
 	}
 
-	// With diff mode off, a bare URL of a changed file is the normal page,
-	// the marks compare with HEAD, and Changes selects HEAD.
+	// With diff mode off, a bare URL of a changed file is the normal page.
+	// The marks keep the base, and Changes selects it.
 	page = getWith("/docs/LOOSE.md", baseOff).Body.String()
 	contains(t, "diff mode off", page, `data-kind="note"`, `data-base="HEAD"`, "<span>Compare</span>", `href="/docs/LOOSE.md?diff=HEAD" data-diff-mode="HEAD">Changes</a>`)
 	contains(t, "explicit base with diff mode off", getWith("/docs/LOOSE.md?diff=HEAD", baseOff).Body.String(), `data-kind="diff"`)
+	page = getWith("/docs/USAGE.md", "off:branch").Body.String()
+	contains(t, "diff mode off with a base", page, append(branchMarks, `data-kind="note"`, "<span>Branch</span>", `href="/docs/USAGE.md?diff=branch" data-diff-mode="branch">Changes</a>`)...)
 
 	// A base that does not resolve compares with HEAD.
-	for _, bad := range []string{"0000000", "--output=/tmp/x"} {
+	for _, bad := range []string{"0000000", "--output=/tmp/x", "off:0000000", "off:off", "offbranch"} {
 		contains(t, "base "+bad, getWith("/docs/USAGE.md", bad).Body.String(), `data-kind="note"`, `data-base="HEAD"`)
 	}
 }

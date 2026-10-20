@@ -49,16 +49,19 @@ changes" sets the default base, `HEAD`.
 whole viewer:
 
 - A bare URL always opens the normal page, also for a changed file.
-- The tree marks compare with `HEAD`.
+- The compare base stays. The tree marks, the folder dots, and the picker
+  button continue to show it, such as "Branch".
 - A URL with a `diff` base still shows that diff.
 
-**Changes** turns diff mode on again, with the base that the page shows.
-A base in the picker also turns it on.
+**Changes** turns diff mode on again, with the compare base. A base in
+the picker also turns it on.
 
 ### The cookie
 
-The viewer keeps the mode in the cookie `docsview-mode`: `off`, `branch`,
-or a commit hash. No cookie means the base `HEAD`. The page sets the
+The viewer keeps the mode in the cookie `docsview-mode`. The value is the
+compare base (`branch` or a commit hash), or `off` followed by the base
+when diff mode is off (`off`, `off:branch`, `off:<hash>`). No cookie
+means the base `HEAD` with diff mode on. The page sets the
 cookie when you select **Page**, **Changes**, or an entry of the picker.
 A URL does not set it, so a hover preview (`diff=off`) or a link with a
 `diff` parameter does not change the mode. The cookie name does not
@@ -167,14 +170,16 @@ A file page has these controls in its header:
   2. "Branch changes": the base is the merge base with the main branch.
      This entry shows only when the main branch exists and the current
      branch is a different branch.
-  3. The commits that changed the file, newest first, with renames
-     followed. Each entry shows the subject, the short hash, the author,
-     and the date, and the old path if the file had another path. The list
-     has a maximum of 100 commits.
-  4. "Normal page".
+  3. "Normal page": turns diff mode off (see
+     [Diff mode off](#diff-mode-off)).
+  4. Under "History", the commits that changed the file, newest first,
+     with renames followed. Each entry shows the subject, the short hash,
+     the author, and the date, and the old path if the file had another
+     path. The list has a maximum of 100 commits.
 
-  Use the arrow keys to move in the list, Enter to open an entry, and
-  Escape to close the list.
+  The list opens scrolled to the top, also when the current entry is a
+  commit below. Use the arrow keys to move in the list, Enter to open an
+  entry, and Escape to close the list.
 
 Each control changes the page without a full page load. The back button of
 the browser returns to the previous mode.
@@ -488,8 +493,12 @@ a feature branch:
   against the branch;
 - select "Uncommitted changes": the marks and the bare URLs compare with
   `HEAD` again;
-- select **Page**, then open an untracked file and a file that the branch
-  changed: the normal pages, with the marks against `HEAD`;
-- select **Changes**: the diff against `HEAD`, and diff mode is on again;
+- with the branch as the base, select **Page**, then open a file that the
+  branch changed, then reload: the normal pages, and the marks and the
+  picker button stay on the branch;
+- select **Changes**: the diff against the branch, and diff mode is on
+  again;
 - select "Normal page" with the Enter key, then reload: diff mode stays
-  off.
+  off;
+- the order of the picker list, and a file with 22 commits and its oldest
+  commit as the base: the list opens at the top.
