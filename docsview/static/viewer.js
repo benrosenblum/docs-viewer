@@ -1189,8 +1189,9 @@
       return;
     }
 
-    if (!isPlainLeftClick(event)) return;
     const link = target.closest('a[href]');
+    if (link) keepDiffMode(link);
+    if (!isPlainLeftClick(event)) return;
     if (!link) {
       const source = lightboxSource(target);
       if (source) openLightbox(source);
@@ -1362,8 +1363,20 @@
     return date.toLocaleDateString(undefined, {year: 'numeric', month: 'short', day: 'numeric'});
   }
 
+  /**
+   * Keeps the diff mode of a diff control for the next pages: "off", or the
+   * compare base. The server reads the cookie; HEAD is the default.
+   */
+  function keepDiffMode(link) {
+    const mode = link.dataset.diffMode;
+    if (!mode) return;
+    const age = mode === 'HEAD' ? '; max-age=0' : '';
+    document.cookie = 'docsview-mode=' + encodeURIComponent(mode) + '; path=/; samesite=strict' + age;
+  }
+
   function pickerItem(href, title, note, current) {
-    return h('a', {className: 'suggestion-item diff-picker-item' + (current ? ' is-current' : ''), href, role: 'option', 'aria-current': current ? 'true' : null}, [
+    const mode = new URL(href, location.href).searchParams.get('diff');
+    return h('a', {className: 'suggestion-item diff-picker-item' + (current ? ' is-current' : ''), href, role: 'option', 'aria-current': current ? 'true' : null, 'data-diff-mode': mode}, [
       h('span', {className: 'suggestion-title'}, title),
       note ? h('span', {className: 'suggestion-note', text: note}) : null,
     ]);
@@ -1997,6 +2010,7 @@
 
   function openLink(link, newTab) {
     if (!link) return;
+    keepDiffMode(link);
     const href = link.getAttribute('href');
     if (newTab) {
       window.open(new URL(href, location.href).href, '_blank', 'noopener');

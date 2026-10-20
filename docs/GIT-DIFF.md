@@ -40,16 +40,30 @@ applies to all pages, not only to one file:
   "Branch", instead of "Compare".
 
 Select a base in the base picker of a file page. The base stays when you
-open other pages, when you reload, and in a new tab. To go back to the
-default, select "Uncommitted changes": the base is then `HEAD` again.
-"Normal page" and **Page** apply to one page only. They do not change the
-base.
+open other pages, when you reload, and in a new tab. "Uncommitted
+changes" sets the default base, `HEAD`.
 
-The viewer keeps the base in the cookie `docsview-base`. A request with a
-`diff` parameter that names a valid base (not `off`) sets the cookie;
-`diff=HEAD` removes it. The cookie name does not start with `docsview:`
-like the browser storage keys, because a cookie name cannot contain a
-colon. The cookie expires when the browser closes.
+### Diff mode off
+
+**Page** and "Normal page" in the base picker turn diff mode off for the
+whole viewer:
+
+- A bare URL always opens the normal page, also for a changed file.
+- The tree marks compare with `HEAD`.
+- A URL with a `diff` base still shows that diff.
+
+**Changes** turns diff mode on again, with the base that the page shows.
+A base in the picker also turns it on.
+
+### The cookie
+
+The viewer keeps the mode in the cookie `docsview-mode`: `off`, `branch`,
+or a commit hash. No cookie means the base `HEAD`. The page sets the
+cookie when you select **Page**, **Changes**, or an entry of the picker.
+A URL does not set it, so a hover preview (`diff=off`) or a link with a
+`diff` parameter does not change the mode. The cookie name does not
+start with `docsview:` like the browser storage keys, because a cookie
+name cannot contain a colon. The cookie expires when the browser closes.
 
 When the base in the cookie does not name a commit, for example a hash
 that a rebase removed, the viewer compares with `HEAD`.
@@ -86,6 +100,8 @@ of the file with the current file in the work tree.
   URL shows the uncommitted changes.
 - When a file has no changes against the compare base, its page opens as
   the normal page.
+- When [diff mode is off](#diff-mode-off), each bare URL opens the normal
+  page.
 - The header controls select another mode. The URL keeps the selection.
 
 Images and PDF files are the exception: a bare URL always gives the file
@@ -101,14 +117,15 @@ drawing.
 
 | Parameter | Value | Page |
 |-----------|-------|------|
-| `diff` | not set | The diff against the compare base if the file has changes against it, else the normal page. |
+| `diff` | not set | The diff against the compare base if the file has changes against it, else the normal page. With [diff mode off](#diff-mode-off), always the normal page. |
 | `diff` | `off` | The normal page. |
 | `diff` | `HEAD` | The diff against `HEAD`. |
 | `diff` | `branch` | The diff against the merge base of `HEAD` and the main branch. |
 | `diff` | 7 to 64 hexadecimal characters | The diff against that commit. |
 | `as` | `source` | The source diff of a note. Without it, a note shows the rendered diff. |
 
-Each `diff` value except `off` also becomes the compare base. See
+A `diff` value applies to its page only. On that page, a base also marks
+the tree. The diff controls change the mode of the viewer. See
 [Compare base](#compare-base).
 
 The viewer finds the main branch by name. It uses the first of these
@@ -135,7 +152,8 @@ A file page has these controls in its header:
 
 - **Page / Changes**: shows the normal page (`diff=off`) or the changes.
   This control shows in diff mode and on the normal page of a changed
-  file.
+  file. **Page** turns diff mode off for all pages, and **Changes** turns
+  it on again (see [Diff mode off](#diff-mode-off)).
 - **Rendered / Source**: selects the form of the diff of a note.
 - **The change count**: the number of changes that the page shows, such as
   "5 changes". See [Change count](#change-count).
@@ -421,8 +439,8 @@ The Go tests use temporary repositories and need `git` on `PATH`:
   a file at a commit.
 - `docsview/diffpage_test.go`: diff mode, the URL parameters, the change
   count in the header, the tree marks, the compare base (the cookie, the
-  marks against the branch on each page, the bare URLs, and a base that
-  does not resolve), the branch in the header and in the title, the
+  marks against the branch on each page, the bare URLs, diff mode off, and
+  a base that does not resolve), the branch in the header and in the title, the
   history route, live reload from git, and a viewer without git.
 - `docsview/diffview_test.go`: the source diff, and its change count.
 - `docsview/linediff`: the line diff, the hunks, the pairs, and the word
@@ -469,4 +487,9 @@ a feature branch:
 - a full reload, and a live edit with the base set: the marks stay
   against the branch;
 - select "Uncommitted changes": the marks and the bare URLs compare with
-  `HEAD` again.
+  `HEAD` again;
+- select **Page**, then open an untracked file and a file that the branch
+  changed: the normal pages, with the marks against `HEAD`;
+- select **Changes**: the diff against `HEAD`, and diff mode is on again;
+- select "Normal page" with the Enter key, then reload: diff mode stays
+  off.

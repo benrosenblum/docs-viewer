@@ -38,7 +38,7 @@ func TestDiffMode(t *testing.T) {
 	page := get(t, h, "/docs/USAGE.md", 200).Body.String()
 	contains(t, "changed note", page, `data-kind="diff"`, `<p class="diff-removed" data-change="">The pool holds <del class="diff-word">four</del> connections.</p>`,
 		`<p class="diff-added">The pool holds <ins class="diff-word">eight</ins> connections.</p>`, "<p>Other text.</p>", `<span class="diff-count">1 change</span>`, `data-action="diff-prev"`, `data-action="diff-next"`,
-		`href="/docs/USAGE.md?diff=off">Page</a>`, `data-base="HEAD"`, "<span>Uncommitted</span>", `href="/docs/USAGE.md?as=source&amp;diff=HEAD">Source</a>`,
+		`href="/docs/USAGE.md?diff=off" data-diff-mode="off">Page</a>`, `data-base="HEAD"`, "<span>Uncommitted</span>", `href="/docs/USAGE.md?as=source&amp;diff=HEAD">Source</a>`,
 		`data-level="1"><a href="#usage">Usage</a>`)
 	// A clean note opens as the normal page, with a picker and no toggle.
 	page = get(t, h, "/docs/CLI.md", 200).Body.String()
@@ -48,7 +48,7 @@ func TestDiffMode(t *testing.T) {
 	}
 	// diff=off shows the normal page; the toggle returns to the bare URL.
 	page = get(t, h, "/docs/USAGE.md?diff=off", 200).Body.String()
-	contains(t, "normal page", page, `data-kind="note"`, `href="/docs/USAGE.md">Changes</a>`, `aria-current="page">Page</a>`)
+	contains(t, "normal page", page, `data-kind="note"`, `href="/docs/USAGE.md" data-diff-mode="HEAD">Changes</a>`, `aria-current="page">Page</a>`)
 	// The source diff of the note.
 	page = get(t, h, "/docs/USAGE.md?diff=HEAD&as=source", 200).Body.String()
 	contains(t, "source diff", page, `class="diff-table chroma"`, `<del class="diff-word">four</del>`, `data-as="source"`, `<span class="diff-count">1 change</span>`)
@@ -173,7 +173,7 @@ func TestCompareBase(t *testing.T) {
 		t.Helper()
 		rec := httptest.NewRecorder()
 		r := httptest.NewRequest(http.MethodGet, target, nil)
-		r.AddCookie(&http.Cookie{Name: baseCookie, Value: base})
+		r.AddCookie(&http.Cookie{Name: modeCookie, Value: base})
 		h.ServeHTTP(rec, r)
 		if rec.Code != http.StatusOK {
 			t.Fatalf("GET %s with base %s: %d", target, base, rec.Code)
@@ -189,15 +189,13 @@ func TestCompareBase(t *testing.T) {
 		t.Error("committed change has a mark against HEAD")
 	}
 
-	// A diff parameter keeps its base in the cookie, and marks the tree.
+	// A diff parameter marks the tree against its base. Only the page sets
+	// the cookie, so that a preview with diff=off does not change the mode.
 	rec := get(t, h, "/docs/USAGE.md?diff=branch", 200)
-	contains(t, "picked base", rec.Body.String(), append(branchMarks, `data-path="docs/USAGE.md" aria-current="page" data-git="M"`)...)
-	if c := rec.Result().Cookies(); len(c) != 1 || c[0].Name != baseCookie || c[0].Value != baseBranch {
-		t.Fatalf("cookie of diff=branch: %v", c)
-	}
-	// diff=off and the bare URL keep the cookie as it is.
-	if c := get(t, h, "/docs/USAGE.md?diff=off", 200).Result().Cookies(); len(c) != 0 {
-		t.Errorf("diff=off sets a cookie: %v", c)
+	contains(t, "picked base", rec.Body.String(), append(branchMarks, `data-path="docs/USAGE.md" aria-current="page" data-git="M"`,
+		`href="/docs/USAGE.md?diff=off" data-diff-mode="off">Page</a>`, `data-diff-mode="branch" aria-current="page">Changes</a>`)...)
+	if c := rec.Result().Cookies(); len(c) != 0 {
+		t.Errorf("diff=branch sets a cookie: %v", c)
 	}
 
 	// With the cookie, each page has the marks against the base.
@@ -216,12 +214,14 @@ func TestCompareBase(t *testing.T) {
 		t.Errorf("page states: HEAD %q, branch %q", head, branch)
 	}
 
-	// Uncommitted changes remove the cookie.
-	if c := get(t, h, "/docs/USAGE.md?diff=HEAD", 200).Result().Cookies(); len(c) != 1 || c[0].Name != baseCookie || c[0].MaxAge >= 0 {
-		t.Errorf("cookie of diff=HEAD: %v", c)
-	}
+	// With diff mode off, a bare URL of a changed file is the normal page,
+	// the marks compare with HEAD, and Changes selects HEAD.
+	page = getWith("/docs/LOOSE.md", baseOff).Body.String()
+	contains(t, "diff mode off", page, `data-kind="note"`, `data-base="HEAD"`, "<span>Compare</span>", `href="/docs/LOOSE.md?diff=HEAD" data-diff-mode="HEAD">Changes</a>`)
+	contains(t, "explicit base with diff mode off", getWith("/docs/LOOSE.md?diff=HEAD", baseOff).Body.String(), `data-kind="diff"`)
+
 	// A base that does not resolve compares with HEAD.
-	for _, bad := range []string{"0000000", "--output=/tmp/x", "off"} {
+	for _, bad := range []string{"0000000", "--output=/tmp/x"} {
 		contains(t, "base "+bad, getWith("/docs/USAGE.md", bad).Body.String(), `data-kind="note"`, `data-base="HEAD"`)
 	}
 }

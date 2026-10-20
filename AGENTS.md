@@ -117,8 +117,9 @@ api/               openapi.yaml, the spec vault of this repo
 - **JSON routes** are in `api/openapi.yaml`. A change to a route or a
   response updates the spec in the same commit.
 - **Browser storage** keys start with `docsview:`. The one cookie,
-  `docsview-base`, holds the compare base (a cookie name cannot contain a
-  colon).
+  `docsview-mode`, holds the diff mode: `off` or the compare base (a
+  cookie name cannot contain a colon). `viewer.js` sets it from the
+  `data-diff-mode` of a diff control; the server only reads it.
 
 ## Theme rules
 
