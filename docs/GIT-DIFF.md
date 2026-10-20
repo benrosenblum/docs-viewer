@@ -12,18 +12,47 @@ any file in `.git`.
 
 ## Marks in the file tree
 
-A vault file with uncommitted changes against `HEAD` has a letter after
-its name:
+A vault file with changes against the compare base has a letter after its
+name. The compare base is `HEAD` until you select another base (see
+[Compare base](#compare-base)).
 
 | Mark | Meaning |
 |------|---------|
 | `M` | Modified: a tracked file with changes, staged or not. |
-| `A` | Added: a new file that is staged, or a renamed file. |
+| `A` | Added: a new file that is staged, or a renamed file. Against another base: a file that is not in that commit. |
 | `U` | Untracked: a new file that git does not track. |
 
 A folder that contains a marked file, at any depth, has a dot. A deleted
 file is not in the tree, so it has no mark. A clean work tree shows no
 marks.
+
+## Compare base
+
+The compare base is the version that the whole viewer compares with. It
+applies to all pages, not only to one file:
+
+- The tree marks and the folder dots show the files with changes against
+  the base. Against "Branch changes", the tree marks each file that the
+  branch changed, committed or not.
+- A bare URL of a file with changes against the base opens the diff
+  against the base. A bare URL of another file opens the normal page.
+- On the normal page, the base picker button shows the base, such as
+  "Branch", instead of "Compare".
+
+Select a base in the base picker of a file page. The base stays when you
+open other pages, when you reload, and in a new tab. To go back to the
+default, select "Uncommitted changes": the base is then `HEAD` again.
+"Normal page" and **Page** apply to one page only. They do not change the
+base.
+
+The viewer keeps the base in the cookie `docsview-base`. A request with a
+`diff` parameter that names a valid base (not `off`) sets the cookie;
+`diff=HEAD` removes it. The cookie name does not start with `docsview:`
+like the browser storage keys, because a cookie name cannot contain a
+colon. The cookie expires when the browser closes.
+
+When the base in the cookie does not name a commit, for example a hash
+that a rebase removed, the viewer compares with `HEAD`.
 
 ## Current branch
 
@@ -51,11 +80,12 @@ The tab title always has the full name.
 A file page can show a diff. The diff always compares a **base** version
 of the file with the current file in the work tree.
 
-- When a file has uncommitted changes, its page opens in diff mode, with
-  `HEAD` as the base. This applies to a bare URL, such as
-  `/docs/USAGE.md`.
-- When a file has no uncommitted changes, its page opens as the normal
-  page.
+- When a file has changes against the [compare base](#compare-base), its
+  page opens in diff mode against that base. This applies to a bare URL,
+  such as `/docs/USAGE.md`. The default compare base is `HEAD`, so a bare
+  URL shows the uncommitted changes.
+- When a file has no changes against the compare base, its page opens as
+  the normal page.
 - The header controls select another mode. The URL keeps the selection.
 
 Images and PDF files are the exception: a bare URL always gives the file
@@ -71,12 +101,15 @@ drawing.
 
 | Parameter | Value | Page |
 |-----------|-------|------|
-| `diff` | not set | The diff against `HEAD` if the file has uncommitted changes, else the normal page. |
+| `diff` | not set | The diff against the compare base if the file has changes against it, else the normal page. |
 | `diff` | `off` | The normal page. |
 | `diff` | `HEAD` | The diff against `HEAD`. |
 | `diff` | `branch` | The diff against the merge base of `HEAD` and the main branch. |
 | `diff` | 7 to 64 hexadecimal characters | The diff against that commit. |
 | `as` | `source` | The source diff of a note. Without it, a note shows the rendered diff. |
+
+Each `diff` value except `off` also becomes the compare base. See
+[Compare base](#compare-base).
 
 The viewer finds the main branch by name. It uses the first of these
 branches that exists:
@@ -109,7 +142,9 @@ A file page has these controls in its header:
 - **Previous change / Next change**: the two arrow buttons adjacent to the
   count. See [Move between the changes](#move-between-the-changes).
 - **The base picker**: the button shows the base ("Uncommitted", "Branch",
-  or a short hash), or "Compare" on the normal page. It opens a list:
+  or a short hash). On the normal page, it shows the compare base, or
+  "Compare" when the compare base is `HEAD`. The picker sets the compare
+  base of the viewer. It opens a list:
   1. "Uncommitted changes": the base is `HEAD`.
   2. "Branch changes": the base is the merge base with the main branch.
      This entry shows only when the main branch exists and the current
@@ -287,6 +322,9 @@ flowchart TD
 - A stage of an untracked file changes its mark from `U` to `A`. A stage
   of a modified file does not change its mark, so the page does not
   reload.
+- The marks compare with the [compare base](#compare-base). When you
+  select another base, the tree changes and the page connects to the
+  event stream again with the new base.
 
 [ARCHITECTURE.md](ARCHITECTURE.md#live-reload) describes the event stream.
 
@@ -364,7 +402,12 @@ git --no-optional-locks --literal-pathspecs -c core.quotepath=off -c color.ui=ne
   a variable can select another repository.
 - Revisions come after `--end-of-options`, and paths after `--`.
 - The commands are `rev-parse`, `status --porcelain=v2`, `log --follow`,
-  `cat-file`, and `merge-base`. None of them writes.
+  `cat-file`, `merge-base`, and `diff --name-status`. None of them writes.
+- With a compare base other than `HEAD`, the tree marks come from
+  `git diff --name-status --no-renames <commit> -- <vaults>`, which
+  compares the commit with the work tree. The `U` marks come from
+  `git status`. The viewer runs the two again only when the git key, the
+  vault version, or the base changes.
 
 `--no-optional-locks` is necessary. Without it, `git status` writes
 `.git/index` again. That changes the git key and causes a reload loop.
@@ -377,9 +420,10 @@ The Go tests use temporary repositories and need `git` on `PATH`:
   grammar, the status marks, the history with renames, and the content of
   a file at a commit.
 - `docsview/diffpage_test.go`: diff mode, the URL parameters, the change
-  count in the header, the tree marks, the branch in the header and in the
-  title, the history route, live reload from git, and a viewer without
-  git.
+  count in the header, the tree marks, the compare base (the cookie, the
+  marks against the branch on each page, the bare URLs, and a base that
+  does not resolve), the branch in the header and in the title, the
+  history route, live reload from git, and a viewer without git.
 - `docsview/diffview_test.go`: the source diff, and its change count.
 - `docsview/linediff`: the line diff, the hunks, the pairs, and the word
   marks.
@@ -413,3 +457,16 @@ The branch was examined in a browser also, with a temporary repository:
 - a name of 52 characters, and the path of a diff page at widths from 390
   to 1400 pixels, with the sidebars open;
 - a link to a heading with the text "Branch".
+
+The compare base was examined in a browser with a temporary repository on
+a feature branch:
+
+- select "Branch changes": the tree marks change with no reload, and a
+  folder with a changed file gets a dot;
+- open a changed file from the tree: the diff against the branch;
+- open an unchanged file: the normal page, with "Branch" on the picker
+  button;
+- a full reload, and a live edit with the base set: the marks stay
+  against the branch;
+- select "Uncommitted changes": the marks and the bare URLs compare with
+  `HEAD` again.

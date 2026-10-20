@@ -24,6 +24,7 @@ type page struct {
 	Name      string
 	Site      string   // The repository directory name.
 	Branch    string   // The current branch or the short HEAD hash, or "" without git.
+	Base      string   // The compare base of the tree marks, or "" without git.
 	Vault     string   // The vault directory that contains Path, or "".
 	Vaults    []string // All vault directories.
 	SpecVault string   // The vault of OpenAPI specs, or "".
@@ -76,10 +77,14 @@ func icon(name string) template.HTML {
 	return template.HTML(`<svg class="icon" aria-hidden="true"><use href="/_/static/icons.svg#i-` + template.HTMLEscapeString(name) + `"></use></svg>`)
 }
 
-// newPage fills the parts of the layout that depend only on the location.
-func (h *Handler) newPage(idx *index, kind, p string) *page {
-	state := h.gitState(idx)
+// newPage fills the parts of the layout that depend only on the location
+// and the compare base.
+func (h *Handler) newPage(r *http.Request, idx *index, kind, p string) *page {
+	state := h.gitState(idx, compareBase(r))
 	pg := &page{Kind: kind, Path: p, Site: h.name, Branch: state.ref(), Vaults: h.vaults, SpecVault: h.specVault, AssetBase: h.assetBase, Theme: h.themeURL, Tree: viewTree(idx.tree, p, state)}
+	if state != nil {
+		pg.Base = state.base
+	}
 	if p != "" {
 		pg.Vault = h.vaultOf(p)
 		pg.Outside = pg.Vault == ""
@@ -144,7 +149,7 @@ func (h *Handler) render(w http.ResponseWriter, r *http.Request, status int, pg 
 }
 
 func (h *Handler) missing(w http.ResponseWriter, r *http.Request, idx *index) {
-	pg := h.newPage(idx, "missing", "")
+	pg := h.newPage(r, idx, "missing", "")
 	pg.Title = "Not found"
 	h.render(w, r, http.StatusNotFound, pg)
 }
@@ -183,7 +188,7 @@ func (h *Handler) repository(w http.ResponseWriter, r *http.Request, idx *index)
 }
 
 func (h *Handler) note(w http.ResponseWriter, r *http.Request, idx *index, p string) {
-	pg := h.newPage(idx, "note", p)
+	pg := h.newPage(r, idx, "note", p)
 	doc := (*markdown.Document)(nil)
 	if n, ok := idx.byPath[p]; ok {
 		doc = n.doc
@@ -203,7 +208,7 @@ func (h *Handler) note(w http.ResponseWriter, r *http.Request, idx *index, p str
 		pg.Title = doc.Title
 	}
 	pg.Backlinks = idx.backlinks(p)
-	pg.Git = h.controls(idx, p, baseOff)
+	pg.Git = h.controls(r, idx, p, baseOff)
 	h.render(w, r, http.StatusOK, pg)
 }
 
@@ -244,12 +249,12 @@ func (h *Handler) file(w http.ResponseWriter, r *http.Request, idx *index, p str
 		http.ServeContent(w, r, path.Base(p), time.Time{}, f)
 		return
 	}
-	pg := h.newPage(idx, "source", p)
+	pg := h.newPage(r, idx, "source", p)
 	pg.Name = path.Base(p)
 	pg.Title = pg.Name
 	pg.Crumbs[len(pg.Crumbs)-1].Name = pg.Name
 	pg.Backlinks = idx.backlinks(p)
-	pg.Git = h.controls(idx, p, baseOff)
+	pg.Git = h.controls(r, idx, p, baseOff)
 	if markdown.IsDrawing(p) {
 		pg.Kind = "drawing"
 		pg.Body = template.HTML(markdown.DrawingHTML(p, pg.Name))
@@ -298,7 +303,7 @@ func size(n int) string {
 }
 
 func (h *Handler) folder(w http.ResponseWriter, r *http.Request, idx *index, p string) {
-	pg := h.newPage(idx, "folder", p)
+	pg := h.newPage(r, idx, "folder", p)
 	pg.Name = path.Base(p)
 	pg.Title = pg.Name
 	pg.Crumbs[len(pg.Crumbs)-1].Name = pg.Name
@@ -331,7 +336,7 @@ func (h *Handler) folder(w http.ResponseWriter, r *http.Request, idx *index, p s
 }
 
 func (h *Handler) searchPage(w http.ResponseWriter, r *http.Request, idx *index) {
-	pg := h.newPage(idx, "search", "")
+	pg := h.newPage(r, idx, "search", "")
 	result := idx.search(r.URL.Query().Get("q"))
 	pg.Search = &result
 	pg.Title = "Search"
@@ -342,7 +347,7 @@ func (h *Handler) searchPage(w http.ResponseWriter, r *http.Request, idx *index)
 }
 
 func (h *Handler) graphPage(w http.ResponseWriter, r *http.Request, idx *index) {
-	pg := h.newPage(idx, "graph", "")
+	pg := h.newPage(r, idx, "graph", "")
 	pg.Title = "Graph view"
 	h.render(w, r, http.StatusOK, pg)
 }

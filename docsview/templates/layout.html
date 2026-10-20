@@ -17,7 +17,7 @@
 <script defer src="/_/static/graph.js"></script>
 {{- end}}
 </head>
-<body data-kind="{{.Kind}}" data-path="{{.Path}}" data-asset-base="{{.AssetBase}}" data-vault="{{.Vault}}" data-spec-vault="{{.SpecVault}}">
+<body data-kind="{{.Kind}}" data-path="{{.Path}}" data-asset-base="{{.AssetBase}}" data-vault="{{.Vault}}" data-spec-vault="{{.SpecVault}}"{{with .Base}} data-base="{{.}}"{{end}}>
 <div class="app">
 <aside id="left" class="sidebar sidebar-left" aria-label="Files">
 <div class="sidebar-header">

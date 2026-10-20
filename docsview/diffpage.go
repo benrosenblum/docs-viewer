@@ -59,30 +59,58 @@ func fileURL(p, diff, as string) string {
 	return u
 }
 
-// gitState returns the shared git state of the vault, or nil without git.
-func (h *Handler) gitState(idx *index) *gitState {
+// baseCookie holds the compare base between pages. A cookie name cannot
+// contain the colon of the storage keys.
+const baseCookie = "docsview-base"
+
+// compareBase returns the base that the tree marks and the bare URLs of a
+// request compare with: the diff parameter when it names a base, else the
+// cookie, else HEAD.
+func compareBase(r *http.Request) string {
+	if v := r.URL.Query().Get("diff"); v != baseOff && validBase(v) {
+		return v
+	}
+	if c, err := r.Cookie(baseCookie); err == nil && c.Value != baseOff && validBase(c.Value) {
+		return c.Value
+	}
+	return baseHead
+}
+
+// keepBase makes base the compare base of the next requests. HEAD removes
+// the cookie.
+func keepBase(w http.ResponseWriter, base string) {
+	c := &http.Cookie{Name: baseCookie, Value: base, Path: "/", HttpOnly: true, SameSite: http.SameSiteStrictMode}
+	if base == baseHead {
+		c.Value, c.MaxAge = "", -1
+	}
+	http.SetCookie(w, c)
+}
+
+// gitState returns the shared git state of the vault with the marks against
+// base, or nil without git.
+func (h *Handler) gitState(idx *index, base string) *gitState {
 	if h.git == nil {
 		return nil
 	}
-	return h.git.status(h.vaults, idx.version)
+	return h.git.baseStatus(h.vaults, idx.version, base)
 }
 
-// fileStatus returns the tree mark of a file. A file outside the vault gets
-// its own status command.
-func (h *Handler) fileStatus(idx *index, p string) string {
-	if h.git == nil {
+// fileStatus returns the tree mark of a file in state, which can be nil. A
+// file outside the vault gets its own status command.
+func (h *Handler) fileStatus(state *gitState, p string) string {
+	if state == nil {
 		return ""
 	}
 	if h.vaultOf(p) != "" {
-		return h.gitState(idx).statusOf(p)
+		return state.statusOf(p)
 	}
-	return h.git.pathStatus(p, h.statLine(p))
+	return h.git.pathStatus(p, h.statLine(p), state.base)
 }
 
 // diffBase returns the base of a file page request: "off" for the normal
-// page. A URL without a diff parameter shows the diff against HEAD when the
-// file has uncommitted changes. Images keep their raw bytes, because notes
-// embed them by the bare URL.
+// page. A URL without a diff parameter shows the diff against the compare
+// base when the file has changes against it. Images keep their raw bytes,
+// because notes embed them by the bare URL.
 func (h *Handler) diffBase(r *http.Request, idx *index, p string) string {
 	values, set := r.URL.Query()["diff"]
 	switch {
@@ -91,38 +119,48 @@ func (h *Handler) diffBase(r *http.Request, idx *index, p string) string {
 	case set:
 		return values[0]
 	}
-	if _, raw := rawTypes[strings.ToLower(path.Ext(p))]; raw || h.fileStatus(idx, p) == "" {
+	state := h.gitState(idx, compareBase(r))
+	if _, raw := rawTypes[strings.ToLower(path.Ext(p))]; raw || h.fileStatus(state, p) == "" {
 		return baseOff
 	}
-	return baseHead
+	return state.base
 }
 
-// controls returns the header controls of a file page.
-func (h *Handler) controls(idx *index, p, base string) *gitControls {
+// baseLabel returns the picker button text of a base.
+func baseLabel(base string) string {
+	switch base {
+	case baseOff:
+		return "Compare"
+	case baseHead:
+		return "Uncommitted"
+	case baseBranch:
+		return "Branch"
+	}
+	return base[:min(len(base), 7)]
+}
+
+// controls returns the header controls of a file page. The normal page
+// names the compare base when it is not HEAD.
+func (h *Handler) controls(r *http.Request, idx *index, p, base string) *gitControls {
 	if h.git == nil {
 		return nil
 	}
-	c := &gitControls{Path: p, Status: h.fileStatus(idx, p), Base: base, Label: "Compare", PageURL: fileURL(p, baseOff, "")}
-	c.ChangesURL = fileURL(p, baseHead, "")
+	state := h.gitState(idx, compareBase(r))
+	c := &gitControls{Path: p, Status: h.fileStatus(state, p), Base: base, Label: baseLabel(base), PageURL: fileURL(p, baseOff, "")}
+	c.ChangesURL = fileURL(p, state.base, "")
 	if c.Status != "" {
 		c.ChangesURL = fileURL(p, "", "")
 	}
 	c.ShowToggle = c.Status != "" || base != baseOff
-	switch base {
-	case baseOff:
-	case baseHead:
-		c.Label = "Uncommitted"
-	case baseBranch:
-		c.Label = "Branch"
-	default:
-		c.Label = base[:min(len(base), 7)]
+	if base == baseOff && state.base != baseHead {
+		c.Label = baseLabel(state.base)
 	}
 	return c
 }
 
 // badBase answers a request with an invalid or unknown base.
 func (h *Handler) badBase(w http.ResponseWriter, r *http.Request, idx *index, p string, err error) {
-	pg := h.newPage(idx, "missing", p)
+	pg := h.newPage(r, idx, "missing", p)
 	pg.Title = "Invalid base"
 	pg.Body = template.HTML(`<p class="render-error">` + escapeText(err.Error()) + `</p><p><a href="` + escapeText(fileURL(p, baseOff, "")) + `">Show the page</a></p>`)
 	h.render(w, r, http.StatusBadRequest, pg)
@@ -141,19 +179,22 @@ func (h *Handler) diff(w http.ResponseWriter, r *http.Request, idx *index, p, ba
 		}
 		return
 	}
+	if r.URL.Query().Has("diff") {
+		keepBase(w, base)
+	}
 	note := isNote(p)
 	limit := int64(maxSource)
 	if note {
 		limit = maxNote
 	}
-	pg := h.newPage(idx, "diff", p)
+	pg := h.newPage(r, idx, "diff", p)
 	if !note {
 		pg.Name = path.Base(p)
 		pg.Title = pg.Name
 		pg.Crumbs[len(pg.Crumbs)-1].Name = pg.Name
 	}
 	pg.Backlinks = idx.backlinks(p)
-	pg.Git = h.controls(idx, p, base)
+	pg.Git = h.controls(r, idx, p, base)
 	as := ""
 	if note && r.URL.Query().Get("as") == "source" {
 		as = "source"
@@ -161,7 +202,7 @@ func (h *Handler) diff(w http.ResponseWriter, r *http.Request, idx *index, p, ba
 	d := &diffView{Note: note, Source: !note || as == "source", RenderedURL: fileURL(p, base, ""), SourceURL: fileURL(p, base, "source")}
 	pg.Git.Diff, pg.Diff = d, d
 
-	state := h.gitState(idx)
+	state := h.gitState(idx, baseHead)
 	top, err := h.git.pathAt(ctx, state, commit, p)
 	if err != nil {
 		h.withError(w, r, idx, p, err)
@@ -242,7 +283,7 @@ func (h *Handler) diff(w http.ResponseWriter, r *http.Request, idx *index, p, ba
 
 // withError answers with status 500 inside the viewer layout.
 func (h *Handler) withError(w http.ResponseWriter, r *http.Request, idx *index, p string, err error) {
-	h.unreadable(w, r, h.newPage(idx, "missing", p), err)
+	h.unreadable(w, r, h.newPage(r, idx, "missing", p), err)
 }
 
 // historyResponse is the body of /_/api/history.
@@ -264,7 +305,7 @@ func (h *Handler) historyJSON(w http.ResponseWriter, r *http.Request, idx *index
 		http.NotFound(w, r)
 		return
 	}
-	state := h.gitState(idx)
+	state := h.gitState(idx, baseHead)
 	commits, err := h.git.log(r.Context(), state.head, p)
 	if err != nil {
 		http.Error(w, "Cannot read the history: "+err.Error(), http.StatusInternalServerError)

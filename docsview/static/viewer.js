@@ -1036,6 +1036,8 @@
     if (parts.main && wasGraph && window.DocsGraph) window.DocsGraph.unmount();
     closePreview();
     stopOutline();
+    // A new compare base changes the tree marks.
+    const tree = parts.tree === 'active' && document.body.dataset.base !== doc.body.dataset.base ? 'swap' : parts.tree;
     if (parts.main) {
       closePicker();
       lastChange = null;
@@ -1046,10 +1048,10 @@
     }
     document.title = doc.title;
     if (parts.right) replacePart('#right', doc);
-    if (parts.tree === 'swap') {
+    if (tree === 'swap') {
       replacePart('#file-tree', doc);
       applyTreeState();
-    } else if (parts.tree === 'active' && !syncTreeActive(doc)) {
+    } else if (tree === 'active' && !syncTreeActive(doc)) {
       replacePart('#file-tree', doc);
       applyTreeState();
     }
@@ -2502,7 +2504,7 @@
   // Live reload
 
   let events = null;
-  let eventsPath = null;
+  let eventsKey = null;
   let lastVersion = null;
   let droppedConnection = false;
   let refreshing = null;
@@ -2520,9 +2522,11 @@
   function connectLive() {
     if (!window.EventSource) return;
     const path = document.body.dataset.path || '';
-    if (events && eventsPath === path) return;
+    // The stream compares with the base of its cookie: a new base reconnects.
+    const key = path + '\n' + (document.body.dataset.base || '');
+    if (events && eventsKey === key) return;
     if (events) events.close();
-    eventsPath = path;
+    eventsKey = key;
     lastVersion = null;
     droppedConnection = false;
     events = new EventSource('/_/events?path=' + encodeURIComponent(path));

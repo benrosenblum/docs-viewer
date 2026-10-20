@@ -157,6 +157,75 @@ func TestTreeMarks(t *testing.T) {
 		`<li class="tree-folder" data-path="docs" data-git-dirty>`, `<li class="tree-folder" data-path="docs/ref" data-git-dirty>`, `<li class="tree-folder" data-path="openspec"><details>`)
 }
 
+func TestCompareBase(t *testing.T) {
+	h, repo := gitFixture(t, diffSample)
+	runGit(t, repo, "switch", "-q", "-c", "feature")
+	write(t, filepath.Join(repo, "docs/USAGE.md"), "# Usage\n\nCommitted on the branch.\n")
+	write(t, filepath.Join(repo, "docs/ref/NEW.md"), "# New\n")
+	write(t, filepath.Join(repo, "internal/pool/pool.go"), "package pool\n\nconst maxOpenFiles = 8\n")
+	runGit(t, repo, "add", "-A")
+	runGit(t, repo, "commit", "-q", "-m", "Branch work")
+	runGit(t, repo, "rm", "-q", "docs/CLI.md")
+	write(t, filepath.Join(repo, "docs/LOOSE.md"), "# Loose\n")
+
+	// getWith sends the cookie of a compare base.
+	getWith := func(target, base string) *httptest.ResponseRecorder {
+		t.Helper()
+		rec := httptest.NewRecorder()
+		r := httptest.NewRequest(http.MethodGet, target, nil)
+		r.AddCookie(&http.Cookie{Name: baseCookie, Value: base})
+		h.ServeHTTP(rec, r)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("GET %s with base %s: %d", target, base, rec.Code)
+		}
+		return rec
+	}
+	branchMarks := []string{`data-base="branch"`, `data-path="docs/ref/NEW.md" data-git="A"`, `data-path="docs/LOOSE.md" data-git="U"`, `<li class="tree-folder" data-path="docs/ref" data-git-dirty>`}
+
+	// Without a cookie, the marks and the bare URLs compare with HEAD.
+	page := get(t, h, "/docs/USAGE.md", 200).Body.String()
+	contains(t, "HEAD base", page, `data-kind="note"`, `data-base="HEAD"`, `data-path="docs/LOOSE.md" data-git="U"`)
+	if strings.Contains(page, `data-git="M"`) {
+		t.Error("committed change has a mark against HEAD")
+	}
+
+	// A diff parameter keeps its base in the cookie, and marks the tree.
+	rec := get(t, h, "/docs/USAGE.md?diff=branch", 200)
+	contains(t, "picked base", rec.Body.String(), append(branchMarks, `data-path="docs/USAGE.md" aria-current="page" data-git="M"`)...)
+	if c := rec.Result().Cookies(); len(c) != 1 || c[0].Name != baseCookie || c[0].Value != baseBranch {
+		t.Fatalf("cookie of diff=branch: %v", c)
+	}
+	// diff=off and the bare URL keep the cookie as it is.
+	if c := get(t, h, "/docs/USAGE.md?diff=off", 200).Result().Cookies(); len(c) != 0 {
+		t.Errorf("diff=off sets a cookie: %v", c)
+	}
+
+	// With the cookie, each page has the marks against the base.
+	contains(t, "search page", getWith("/_/search", baseBranch).Body.String(), append(branchMarks, `data-path="docs/USAGE.md" data-git="M"`)...)
+	// A bare URL of a file with changes against the base is a diff.
+	contains(t, "bare URL", getWith("/docs/ref/NEW.md", baseBranch).Body.String(), `data-kind="diff"`, `data-base="branch"`, "<span>Branch</span>", `<h1 class="diff-added" data-change="" id="new">New</h1>`)
+	contains(t, "outside file", getWith("/internal/pool/pool.go", baseBranch).Body.String(), `data-kind="diff"`, `<ins class="diff-word">8</ins>`)
+	// A file without changes against the base is the normal page, and the
+	// picker names the base.
+	contains(t, "clean file", getWith("/docs/README.md", baseBranch).Body.String(), `data-kind="note"`, "<span>Branch</span>")
+
+	// The live reload state of a page has the mark against its base.
+	_, head, _ := h.versions("docs/ref/NEW.md", baseHead)
+	_, branch, _ := h.versions("docs/ref/NEW.md", baseBranch)
+	if strings.HasSuffix(head, ":A") || !strings.HasSuffix(branch, ":A") {
+		t.Errorf("page states: HEAD %q, branch %q", head, branch)
+	}
+
+	// Uncommitted changes remove the cookie.
+	if c := get(t, h, "/docs/USAGE.md?diff=HEAD", 200).Result().Cookies(); len(c) != 1 || c[0].Name != baseCookie || c[0].MaxAge >= 0 {
+		t.Errorf("cookie of diff=HEAD: %v", c)
+	}
+	// A base that does not resolve compares with HEAD.
+	for _, bad := range []string{"0000000", "--output=/tmp/x", "off"} {
+		contains(t, "base "+bad, getWith("/docs/USAGE.md", bad).Body.String(), `data-kind="note"`, `data-base="HEAD"`)
+	}
+}
+
 func TestBranch(t *testing.T) {
 	h, repo := gitFixture(t, diffSample)
 	check := func(ref string) {

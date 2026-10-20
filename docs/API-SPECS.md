@@ -29,7 +29,7 @@ other text as a source page.
 
 | URL | Page |
 |-----|------|
-| `/api/openapi.yaml` | The reference. If the file has uncommitted changes, the diff. See [GIT-DIFF.md](GIT-DIFF.md#diff-mode). |
+| `/api/openapi.yaml` | The reference. If the file has changes against the compare base, the diff. See [GIT-DIFF.md](GIT-DIFF.md#diff-mode). |
 | `/api/openapi.yaml?diff=off` | The reference. This is the "Reference" link. |
 | `/api/openapi.yaml?diff=off&view=source` | The YAML with syntax colors. This is the "Source" link. |
 | `/api/openapi.yaml?raw=1` | The YAML file as plain text. Redoc reads the spec from this URL. |

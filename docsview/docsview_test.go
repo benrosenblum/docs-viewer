@@ -188,7 +188,7 @@ func TestRepositorySurface(t *testing.T) {
 func TestOutsideFileChanges(t *testing.T) {
 	h, repo := fixture(t, map[string]string{"docs/README.md": "See [the code](../src/x.go).\n"})
 	const unresolved = `is-unresolved" href="/src/x.go"`
-	before, _, err := h.versions("")
+	before, _, err := h.versions("", baseHead)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -196,7 +196,7 @@ func TestOutsideFileChanges(t *testing.T) {
 		t.Fatal("link to a missing outside file is not unresolved")
 	}
 	write(t, filepath.Join(repo, "src/x.go"), "package x\n")
-	after, _, err := h.versions("")
+	after, _, err := h.versions("", baseHead)
 	if err != nil {
 		t.Fatal(err)
 	}

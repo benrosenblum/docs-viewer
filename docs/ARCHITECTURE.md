@@ -150,8 +150,12 @@ The page opens an event stream at `/_/events?path=<repository path>`
 
 | Value | Contents |
 |-------|----------|
-| Tree state | The vault version. With git, also a digest of the tree marks, the branch, and the `HEAD` commit. |
+| Tree state | The vault version. With git, also a digest of the tree marks, the compare base, the branch, and the `HEAD` commit. |
 | Page state | The size and the modification time of the open file. For a vault note, also a hash of its HTML. With git, also the `HEAD` commit and the mark of the file. |
+
+With git, the marks compare with the base in the cookie of the connection
+([compare base](GIT-DIFF.md#compare-base)). When the base changes, the
+page connects again.
 
 The hash of the HTML is necessary because a note can change when its file
 does not. For example, a new file makes an unresolved link in another note

@@ -38,12 +38,19 @@ type gitRepo struct {
 	mu       sync.Mutex // Guards the caches below; held while status runs.
 	state    *gitState
 	stateKey string
+	bases    map[string]baseState // The marks against a base that is not HEAD.
 	paths    map[string]pathStatus
 	history  map[string][]commitInfo // Keyed by the HEAD hash and the path.
 }
 
 // pathStatus is the cached status of one file outside the vault.
 type pathStatus struct{ key, status string }
+
+// baseState is the cached state against one base.
+type baseState struct {
+	key   string
+	state *gitState
+}
 
 // gitError reports a failed git command with the first line git wrote.
 type gitError struct {
@@ -65,7 +72,7 @@ func (e *gitError) Unwrap() error { return e.err }
 // not on PATH, when root is not in a work tree, or when git refuses to read
 // the repository.
 func openGit(root string) (*gitRepo, error) {
-	g := &gitRepo{dir: root, paths: map[string]pathStatus{}, history: map[string][]commitInfo{}}
+	g := &gitRepo{dir: root, bases: map[string]baseState{}, paths: map[string]pathStatus{}, history: map[string][]commitInfo{}}
 	out, err := g.run(context.Background(), "rev-parse", "--show-toplevel", "--show-prefix", "--absolute-git-dir")
 	if err != nil {
 		return nil, err
@@ -197,6 +204,7 @@ const (
 
 // gitState is an immutable snapshot of the git status of the vault.
 type gitState struct {
+	base    string            // The base of the marks: HEAD, branch, or a hash.
 	branch  string            // The current branch, or "" when HEAD is detached.
 	head    string            // The HEAD commit, or "" before the first commit.
 	files   map[string]string // Root-relative path to its tree mark.
@@ -268,7 +276,7 @@ func (g *gitRepo) status(vaults []string, vaultVersion string) *gitState {
 	out, err := g.run(context.Background(), args...)
 	if err != nil {
 		if g.state == nil {
-			return &gitState{files: map[string]string{}, renamed: map[string]string{}}
+			return &gitState{base: baseHead, files: map[string]string{}, renamed: map[string]string{}}
 		}
 		return g.state
 	}
@@ -276,10 +284,81 @@ func (g *gitRepo) status(vaults []string, vaultVersion string) *gitState {
 	return g.state
 }
 
-// pathStatus returns the tree mark of one root-relative path outside the
-// vault, cached by the git key and the file's state line.
-func (g *gitRepo) pathStatus(p, line string) string {
-	key := g.key() + line
+// baseStatus returns the git state of the vaults with the marks against
+// base. An untracked file keeps its mark. A base that does not resolve
+// gives the state against HEAD. Each result is cached like status, also a
+// failure, so that a stale base runs git only after a change.
+func (g *gitRepo) baseStatus(vaults []string, vaultVersion, base string) *gitState {
+	head := g.status(vaults, vaultVersion)
+	if base == baseHead {
+		return head
+	}
+	key := g.key() + vaultVersion
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	if cached, ok := g.bases[base]; ok && cached.key == key {
+		return cached.state
+	}
+	if len(g.bases) > 16 {
+		clear(g.bases)
+	}
+	tops := make([]string, len(vaults))
+	for i, v := range vaults {
+		tops[i] = g.topPath(v)
+	}
+	files, err := g.marksAgainst(base, tops)
+	if err != nil {
+		g.bases[base] = baseState{key, head}
+		return head
+	}
+	for p, mark := range head.files {
+		if mark == gitUntracked {
+			files[p] = mark
+		}
+	}
+	s := &gitState{base: base, branch: head.branch, head: head.head, files: files, renamed: head.renamed}
+	s.sum()
+	g.bases[base] = baseState{key, s}
+	return s
+}
+
+// marksAgainst returns the tree marks of the tracked files below the
+// top-level paths that differ between the commit of base and the work tree.
+func (g *gitRepo) marksAgainst(base string, tops []string) (map[string]string, error) {
+	ctx := context.Background()
+	commit, err := g.resolveBase(ctx, base)
+	if err != nil {
+		return nil, err
+	}
+	if commit == "" {
+		return nil, errors.New("no commit to compare with")
+	}
+	out, err := g.run(ctx, append([]string{"diff", "--name-status", "-z", "--no-renames", "--end-of-options", commit, "--"}, tops...)...)
+	if err != nil {
+		return nil, err
+	}
+	files := map[string]string{}
+	fields := strings.Split(string(out), "\x00")
+	for i := 0; i+1 < len(fields); i += 2 {
+		status, top := fields[i], fields[i+1]
+		p, ok := g.rootPath(top)
+		switch {
+		case !ok || status == "D":
+			// Deleted files are not in the tree.
+		case status == "A":
+			files[p] = gitAdded
+		default:
+			files[p] = gitModified
+		}
+	}
+	return files, nil
+}
+
+// pathStatus returns the tree mark against base of one root-relative path
+// outside the vault, cached by the git key, the base, and the file's state
+// line.
+func (g *gitRepo) pathStatus(p, line, base string) string {
+	key := g.key() + line + "\x00" + base
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	if cached, ok := g.paths[p]; ok && cached.key == key {
@@ -289,17 +368,24 @@ func (g *gitRepo) pathStatus(p, line string) string {
 	if err != nil {
 		return g.paths[p].status
 	}
+	status := g.parseStatus(out).files[p]
+	if base != baseHead && status != gitUntracked {
+		files, err := g.marksAgainst(base, []string{g.topPath(p)})
+		if err != nil {
+			return g.paths[p].status
+		}
+		status = files[p]
+	}
 	if len(g.paths) > 256 {
 		clear(g.paths)
 	}
-	status := g.parseStatus(out).files[p]
 	g.paths[p] = pathStatus{key, status}
 	return status
 }
 
 // parseStatus reads "git status --porcelain=v2 -z" output.
 func (g *gitRepo) parseStatus(out []byte) *gitState {
-	s := &gitState{files: map[string]string{}, renamed: map[string]string{}}
+	s := &gitState{base: baseHead, files: map[string]string{}, renamed: map[string]string{}}
 	fields := strings.Split(string(out), "\x00")
 	for i := 0; i < len(fields); i++ {
 		line := fields[i]
@@ -347,13 +433,18 @@ func (g *gitRepo) parseStatus(out []byte) *gitState {
 			s.files[p] = mark
 		}
 	}
+	s.sum()
+	return s
+}
+
+// sum sets the digest of the state.
+func (s *gitState) sum() {
 	hash := sha256.New()
-	fmt.Fprintf(hash, "%s\x00%s\x00", s.branch, s.head)
+	fmt.Fprintf(hash, "%s\x00%s\x00%s\x00", s.base, s.branch, s.head)
 	for _, p := range slices.Sorted(maps.Keys(s.files)) {
 		fmt.Fprintf(hash, "%s\x00%s\x00", p, s.files[p])
 	}
 	s.digest = hex.EncodeToString(hash.Sum(nil))[:16]
-	return s
 }
 
 // errBlobTooLarge reports a base version above the display limit.

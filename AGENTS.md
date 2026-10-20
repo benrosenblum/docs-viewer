@@ -116,7 +116,9 @@ api/               openapi.yaml, the spec vault of this repo
   limit; a too-large input gets a message in the page.
 - **JSON routes** are in `api/openapi.yaml`. A change to a route or a
   response updates the spec in the same commit.
-- **Browser storage** keys start with `docsview:`.
+- **Browser storage** keys start with `docsview:`. The one cookie,
+  `docsview-base`, holds the compare base (a cookie name cannot contain a
+  colon).
 
 ## Theme rules
 

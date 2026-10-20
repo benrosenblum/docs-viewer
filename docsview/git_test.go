@@ -189,11 +189,11 @@ func TestGitStatus(t *testing.T) {
 
 	// A file outside the vault has its own status.
 	line := h.statLine("outside/example.go")
-	if g.pathStatus("outside/example.go", line) != "" {
+	if g.pathStatus("outside/example.go", line, baseHead) != "" {
 		t.Error("clean outside file has a mark")
 	}
 	write(t, filepath.Join(repo, "outside/example.go"), "package y\n")
-	if g.pathStatus("outside/example.go", h.statLine("outside/example.go")) != "M" {
+	if g.pathStatus("outside/example.go", h.statLine("outside/example.go"), baseHead) != "M" {
 		t.Error("changed outside file has no mark")
 	}
 }

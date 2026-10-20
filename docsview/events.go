@@ -28,7 +28,8 @@ func (h *Handler) events(w http.ResponseWriter, r *http.Request) {
 	if viewed != "" && (path.Clean(viewed) != viewed || !allowed(viewed)) {
 		viewed = ""
 	}
-	vault, page, err := h.versions(viewed)
+	base := compareBase(r)
+	vault, page, err := h.versions(viewed, base)
 	if err != nil {
 		http.Error(w, "Cannot read the documentation directory: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -63,7 +64,7 @@ func (h *Handler) events(w http.ResponseWriter, r *http.Request) {
 			}
 			flusher.Flush()
 		case <-ticks:
-			nextVault, nextPage, err := h.versions(viewed)
+			nextVault, nextPage, err := h.versions(viewed, base)
 			if err != nil || nextVault == vault && nextPage == page {
 				continue
 			}
@@ -77,14 +78,14 @@ func (h *Handler) events(w http.ResponseWriter, r *http.Request) {
 }
 
 // versions returns the vault version and a version of the viewed page. With
-// git, both include the git state.
-func (h *Handler) versions(viewed string) (string, string, error) {
+// git, both include the git state against the compare base.
+func (h *Handler) versions(viewed, base string) (string, string, error) {
 	idx, err := h.current()
 	if err != nil {
 		return "", "", err
 	}
 	vault := idx.version
-	state := h.gitState(idx)
+	state := h.gitState(idx, base)
 	if state != nil {
 		// A commit, a stage, or a branch switch changes the tree marks.
 		vault += ":" + state.digest
@@ -102,7 +103,7 @@ func (h *Handler) versions(viewed string) (string, string, error) {
 	}
 	if state != nil && allowed(viewed) {
 		// The diff of the page changes with HEAD and with the file status.
-		page += ":" + state.head + ":" + h.fileStatus(idx, viewed)
+		page += ":" + state.head + ":" + h.fileStatus(state, viewed)
 	}
 	return vault, page, nil
 }
