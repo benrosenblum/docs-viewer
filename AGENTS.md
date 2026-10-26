@@ -79,7 +79,7 @@ docsview/          docsview.go (Config, New, routes, static, theme, assets),
                    viewer.js, graph.js, theme.js, icons.svg
   templates/       layout.html (the one page template)
 docs/              the documentation; also the viewer's own test vault
-api/               openapi.yaml, the spec vault of this repo
+api/               openapi.yaml + paths/ (a split spec), the spec vault of this repo
 ```
 
 ## Layering rules (enforced by review)
@@ -103,8 +103,8 @@ api/               openapi.yaml, the spec vault of this repo
 ## Conventions
 
 - **URL space**: each path below `/_/` belongs to the viewer (`/_/static/`,
-  `/_/theme/`, `/_/assets/<version>/`, `/_/api/`, `/_/events`, `/_/search`,
-  `/_/graph`). Each other path is a repository path. URLs are root-absolute.
+  `/_/theme/`, `/_/assets/<version>/`, `/_/api/`, `/_/events`, `/_/raw/`,
+  `/_/search`, `/_/graph`). Each other path is a repository path. URLs are root-absolute.
 - **Requests**: `GET` and `HEAD` only. Each response carries the content
   security policy, `nosniff`, and `no-store` (pinned assets are immutable).
 - **Path admission**: `allowed` in `vault.go` rejects hidden entries,

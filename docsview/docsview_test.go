@@ -163,7 +163,7 @@ func TestRepositorySurface(t *testing.T) {
 	for _, static := range []string{"viewer.js", "viewer.css", "theme.js", "graph.js", "icons.svg", "highlight.css"} {
 		get(t, h, "/_/static/"+static, 200)
 	}
-	for _, missing := range []string{"/.git/config", "/.local/data/save.db", "/node_modules/pkg/x.md", "/docs/.hidden.md", "/docs/escape.md", "/docs/cfg.txt", "/docs/cfg.txt?raw=1", "/docs/git/config", "/docs/ref/plan.md/", "/docs/../go.mod", "/docs//README.md", "/_/nothing", "/_/static/missing.js", "/_/static/../viewer.js", "/_/assets/0123456789abcdef/mermaid/unlisted.js", "/_/assets/ffffffffffffffff/mermaid/mermaid.min.js", "/missing.md"} {
+	for _, missing := range []string{"/.git/config", "/.local/data/save.db", "/node_modules/pkg/x.md", "/docs/.hidden.md", "/docs/escape.md", "/docs/cfg.txt", "/docs/cfg.txt?raw=1", "/docs/git/config", "/docs/ref/plan.md/", "/docs/../go.mod", "/docs//README.md", "/_/nothing", "/_/static/missing.js", "/_/static/../viewer.js", "/_/raw/", "/_/raw/.git/config", "/_/raw/docs/cfg.txt", "/_/raw/docs/escape.md", "/_/raw/docs/../go.mod", "/_/raw/docs/ref", "/_/raw/docs/missing.md", "/_/assets/0123456789abcdef/mermaid/unlisted.js", "/_/assets/ffffffffffffffff/mermaid/mermaid.min.js", "/missing.md"} {
 		get(t, h, missing, 404)
 	}
 	if strings.Contains(get(t, h, "/docs/.hidden.md", 404).Body.String(), sample["docs/.hidden.md"]) {

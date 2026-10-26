@@ -62,6 +62,7 @@ repository path.
 | `/_/api/graph` | JSON: the nodes and the links of the graph. |
 | `/_/api/history?path=` | JSON: the commits that changed a file. |
 | `/_/events?path=` | The live reload event stream. |
+| `/_/raw/<repository path>` | The bytes of the file, as for `raw=1`. A relative URL in the file resolves below `/_/raw/` too. Redoc reads a spec from this path. See [API-SPECS.md](API-SPECS.md#split-specs). |
 | `/_/search?q=` | The search results as a page. |
 | `/_/graph` | The graph page. |
 | Other `/_/` paths | The "Not found" page, status 404. |
@@ -125,7 +126,9 @@ For a repository path, the handler selects the page as follows:
 5. An Excalidraw drawing (`.excalidraw`) gives the drawing page. The page
    holds a placeholder. The browser gets the file with `raw=1` and renders
    it.
-6. A YAML file in the spec vault gives the API reference page.
+6. A YAML file in the spec vault with a top-level `openapi:` or
+   `swagger:` key gives the API reference page. The
+   browser gets the spec from `/_/raw/<repository path>`.
 7. Other text gives the source page.
 
 The server renders each page in full. The script `viewer.js` then adds the
