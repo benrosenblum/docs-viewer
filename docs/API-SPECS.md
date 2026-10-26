@@ -22,9 +22,11 @@ docs-viewer -vaults docs,api -spec-vault api
 The spec vault must be one of the vaults. If it is not, the viewer does
 not start.
 
-Each `.yaml` or `.yml` file in the spec vault opens as an API reference
-page. Other files in the spec vault open as usual: a note as a note, and
-other text as a source page.
+A `.yaml` or `.yml` file in the spec vault opens as an API reference page
+when a line starts with the top-level key `openapi:` or `swagger:`. Other
+files in the spec vault open as usual: a note as a note, and other text as
+a source page. Thus, a file of a [split spec](#split-specs), such as
+`api/paths/history.yaml`, opens as a source page.
 
 ## Pages of a spec
 
@@ -149,13 +151,12 @@ viewer stops that request, so the page loads nothing from another host.
 - Only YAML files open as a reference. A spec in a `.json` file opens as a
   source page.
 - A YAML file outside the spec vault opens as a source page.
-- The viewer does not examine the content of a YAML file. Each YAML file
-  in the spec vault opens in Redoc. If a file is not an OpenAPI spec,
-  Redoc shows an error. Use the "Source" link to read such a file.
+- The viewer examines only the top-level `openapi:` or `swagger:` key.
+  If a YAML file has the key but is not a valid spec, Redoc shows an
+  error. Use the "Source" link to read such a file.
+- A YAML file larger than 8 MiB always opens as a reference, because the
+  viewer does not read it to find the key.
 - The viewer has one spec vault.
-- A file of a split spec is a YAML file in the spec vault. Thus, it also
-  opens in Redoc, and Redoc shows an error, because the file is not a
-  complete spec. Use the "Source" link to read such a file.
 - Live reload renders the reference again when the root spec changes.
   When you save only a referenced file, the reference stays as it is.
   Load the page again to see the change.
@@ -164,8 +165,10 @@ viewer stops that request, so the page loads nothing from another host.
 
 `docsview/apispec_test.go` covers the spec vault: the tree, the links, the
 reference page, the source form, the linked mentions, the content security
-policy, a YAML file outside the spec vault, and the raw files of a split
-spec. `docsview/docsview_test.go` checks that `/_/raw/` rejects the paths
+policy, a YAML file outside the spec vault, and the files of a split
+spec. Each file of a split spec is raw below `/_/raw/` and opens as a
+source page at its own URL.
+`docsview/docsview_test.go` checks that `/_/raw/` rejects the paths
 that the viewer does not show.
 
 A browser check with Chromium loaded the split spec of this repository.

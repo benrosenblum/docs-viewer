@@ -76,8 +76,10 @@ func TestSpecPage(t *testing.T) {
 			t.Errorf("raw %s = %q, type %q, policy %q", p, raw.Body.String(), raw.Header().Get("Content-Type"), raw.Header().Get("Content-Security-Policy"))
 		}
 	}
-	if page := get(t, h, "/apispec/paths/pets.yaml", 200); page.Header().Get("Content-Type") != "text/html; charset=utf-8" {
-		t.Error("the bare URL of a split spec file is not a page")
+	// A file without a top-level openapi key opens as source, not in Redoc.
+	part := get(t, h, "/apispec/paths/pets.yaml", 200).Body.String()
+	if !strings.Contains(part, `data-kind="source"`) || strings.Contains(part, "redoc") || strings.Contains(part, "Reference") {
+		t.Error("a split spec file is not a plain source page")
 	}
 
 	source := get(t, h, "/apispec/app.yaml?view=source", 200)

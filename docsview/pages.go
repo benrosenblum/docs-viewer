@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"net/http"
 	"path"
+	"regexp"
 	"slices"
 	"strings"
 	"time"
@@ -222,10 +223,19 @@ func (h *Handler) unreadable(w http.ResponseWriter, r *http.Request, pg *page, e
 	h.render(w, r, status, pg)
 }
 
-// isSpec reports whether p is a YAML file in the spec vault.
+// specKey is the top-level key of an OpenAPI or a Swagger document.
+var specKey = regexp.MustCompile(`(?m)^(openapi|swagger)\s*:`)
+
+// isSpec reports whether p is a YAML file in the spec vault with a
+// top-level openapi or swagger key. A file that a split spec references has
+// no such key, so it opens as source. A file too large to read stays a spec.
 func (h *Handler) isSpec(p string) bool {
 	ext := strings.ToLower(path.Ext(p))
-	return h.specVault != "" && within(p, h.specVault) && (ext == ".yaml" || ext == ".yml")
+	if h.specVault == "" || !within(p, h.specVault) || ext != ".yaml" && ext != ".yml" {
+		return false
+	}
+	data, err := h.read(p, maxNote)
+	return errors.Is(err, errTooLarge) || err == nil && specKey.Match(data)
 }
 
 // file serves images and raw requests as bytes, drawings as drawing pages,

@@ -126,7 +126,8 @@ For a repository path, the handler selects the page as follows:
 5. An Excalidraw drawing (`.excalidraw`) gives the drawing page. The page
    holds a placeholder. The browser gets the file with `raw=1` and renders
    it.
-6. A YAML file in the spec vault gives the API reference page. The
+6. A YAML file in the spec vault with a top-level `openapi:` or
+   `swagger:` key gives the API reference page. The
    browser gets the spec from `/_/raw/<repository path>`.
 7. Other text gives the source page.
 
