@@ -309,6 +309,61 @@ body[data-kind="source"] .content {
   background: var(--bg-active) !important;
 }
 
+/* Redoc gives a Markdown table (the one table without a class) white rows
+   and light borders. */
+#redoc table:not([class]) tr {
+  background-color: transparent;
+  border-color: var(--border);
+}
+
+#redoc table:not([class]) tbody tr:nth-child(even) {
+  background-color: var(--table-row-alt);
+}
+
+#redoc table:not([class]) :is(th, td) {
+  border-color: var(--border);
+}
+
+#redoc table:not([class]) th {
+  background-color: var(--table-header-bg);
+}
+
+/* Redoc colors the samples for a dark panel; the panel has the code
+   background of the theme. Each hue mixes with the text color to keep its
+   contrast in light and dark. */
+#redoc .token.string {
+  color: color-mix(in srgb, var(--c-green) 70%, var(--text-normal));
+}
+
+#redoc .token.property.string,
+#redoc .collapser {
+  color: var(--code-text);
+}
+
+#redoc :is(.token.property, .token.number, .token.constant, .token.symbol, .token.tag) {
+  color: color-mix(in srgb, var(--c-blue) 80%, var(--text-normal));
+}
+
+#redoc :is(.token.boolean, .token.deleted) {
+  color: color-mix(in srgb, var(--c-red) 80%, var(--text-normal));
+}
+
+#redoc :is(.token.operator, .token.entity, .token.url, .token.variable, .token.regex, .token.important) {
+  color: color-mix(in srgb, var(--c-orange) 80%, var(--text-normal));
+}
+
+#redoc :is(.token.atrule, .token.attr-value, .token.keyword) {
+  color: color-mix(in srgb, var(--c-purple) 80%, var(--text-normal));
+}
+
+#redoc :is(.token.comment, .token.prolog, .token.doctype, .token.cdata) {
+  color: var(--text-faint);
+}
+
+#redoc .token.string + a {
+  color: var(--accent);
+}
+
 /* ---------- Left sidebar and file tree ---------- */
 
 .sidebar-header {

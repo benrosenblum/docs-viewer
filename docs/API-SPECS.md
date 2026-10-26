@@ -120,6 +120,17 @@ the accent, the text and border colors, the backgrounds, the code colors,
 the `--c-*` hues, and the two font families. The colors of the HTTP
 methods come from `--c-blue`, `--c-green`, `--c-orange`, and `--c-red`.
 
+Redoc sets some colors in its own styles. `viewer.css` replaces them with
+theme properties:
+
+- A Markdown table in a description gets the colors of a table in a note:
+  `--border`, `--table-header-bg`, and `--table-row-alt`.
+- The code samples get `--code-text` for the keys, and a `--c-*` hue
+  mixed with `--text-normal` for the strings, the numbers, and the other
+  values. Redoc's own colors are for a dark panel, and the sample panel
+  has the `--code-bg` of the theme. Thus, without this change, the keys
+  were white on white in the light theme.
+
 Thus, a custom theme also applies to the reference. See
 [THEMES.md](THEMES.md). When you change between light and dark, the
 reference renders again.
