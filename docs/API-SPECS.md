@@ -125,6 +125,8 @@ theme properties:
 
 - A Markdown table in a description gets the colors of a table in a note:
   `--border`, `--table-header-bg`, and `--table-row-alt`.
+- A code block in a description gets `--code-bg` and `--code-text`,
+  with no text shadow and no border on each line.
 - The code samples get `--code-text` for the keys, and a `--c-*` hue
   mixed with `--text-normal` for the strings, the numbers, and the other
   values. Redoc's own colors are for a dark panel, and the sample panel

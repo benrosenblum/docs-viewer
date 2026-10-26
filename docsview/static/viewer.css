@@ -328,6 +328,22 @@ body[data-kind="source"] .content {
   background-color: var(--table-header-bg);
 }
 
+/* Redoc gives a Markdown code block (a pre without a class) white text, and
+   Prism gives code a black text shadow. */
+#redoc pre:not([class]) {
+  background-color: var(--code-bg);
+  color: var(--code-text);
+}
+
+#redoc pre:not([class]) code {
+  border: 0;
+  color: inherit;
+}
+
+#redoc :is(pre, code)[class*="language-"] {
+  text-shadow: none;
+}
+
 /* Redoc colors the samples for a dark panel; the panel has the code
    background of the theme. Each hue mixes with the text color to keep its
    contrast in light and dark. */
