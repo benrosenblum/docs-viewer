@@ -6,7 +6,8 @@ the file tree, the header, and the linked mentions.
 
 This repository is the example. [api/openapi.yaml](../api/openapi.yaml)
 describes the JSON routes of the viewer, and `make docs` shows it as a
-reference page.
+reference page. It is a split spec: one path is in
+[api/paths/history.yaml](../api/paths/history.yaml).
 
 ## Set the spec vault
 
@@ -32,10 +33,56 @@ other text as a source page.
 | `/api/openapi.yaml` | The reference. If the file has changes against the compare base, the diff. See [GIT-DIFF.md](GIT-DIFF.md#diff-mode). |
 | `/api/openapi.yaml?diff=off` | The reference. This is the "Reference" link. |
 | `/api/openapi.yaml?diff=off&view=source` | The YAML with syntax colors. This is the "Source" link. |
-| `/api/openapi.yaml?raw=1` | The YAML file as plain text. Redoc reads the spec from this URL. |
+| `/api/openapi.yaml?raw=1` | The YAML file as plain text. |
+| `/_/raw/api/openapi.yaml` | The YAML file as plain text. Redoc reads the spec from this URL. |
 
 The header of a spec page has the "Reference / Source" control. It changes
 between the two forms of the page.
+
+## Split specs
+
+A spec can put parts of its content in other files. A `$ref` with a
+relative path refers to such a file:
+
+```yaml
+# api/openapi.yaml
+paths:
+  /_/api/history:
+    $ref: paths/history.yaml
+```
+
+```yaml
+# api/paths/history.yaml
+get:
+  responses:
+    '200':
+      content:
+        application/json:
+          schema:
+            $ref: '../openapi.yaml#/components/schemas/History'
+```
+
+In the referenced file, `#/components/...` refers to that file. To refer
+to the root spec, put the path of the root spec before the `#`.
+
+Redoc resolves a relative `$ref` against the URL of the spec. The spec URL
+is `/_/raw/api/openapi.yaml`, so `paths/history.yaml` becomes
+`/_/raw/api/paths/history.yaml`. Each path below `/_/raw/` gives the file
+as plain text. Thus, Redoc reads each file of the spec.
+
+A referenced file can be outside the spec vault, for example
+`../shared/errors.yaml`. `/_/raw/` gives each repository file that the
+viewer shows, as `?raw=1` does. Hidden files and `node_modules` stay
+closed.
+
+```mermaid
+flowchart TD
+  Page["Reference page<br/>/api/openapi.yaml"] --> Root["Redoc gets<br/>/_/raw/api/openapi.yaml"]
+  Root --> Ref["$ref: paths/history.yaml"]
+  Ref --> Part["Redoc gets<br/>/_/raw/api/paths/history.yaml"]
+  Part --> Ref2["$ref: ../openapi.yaml#/..."]
+  Ref2 --> Root
+```
 
 ## Links to a spec
 
@@ -106,9 +153,22 @@ viewer stops that request, so the page loads nothing from another host.
   in the spec vault opens in Redoc. If a file is not an OpenAPI spec,
   Redoc shows an error. Use the "Source" link to read such a file.
 - The viewer has one spec vault.
+- A file of a split spec is a YAML file in the spec vault. Thus, it also
+  opens in Redoc, and Redoc shows an error, because the file is not a
+  complete spec. Use the "Source" link to read such a file.
+- Live reload renders the reference again when the root spec changes.
+  When you save only a referenced file, the reference stays as it is.
+  Load the page again to see the change.
 
 ## How it was checked
 
 `docsview/apispec_test.go` covers the spec vault: the tree, the links, the
 reference page, the source form, the linked mentions, the content security
-policy, and a YAML file outside the spec vault.
+policy, a YAML file outside the spec vault, and the raw files of a split
+spec. `docsview/docsview_test.go` checks that `/_/raw/` rejects the paths
+that the viewer does not show.
+
+A browser check with Chromium loaded the split spec of this repository.
+Redoc got `/_/raw/api/openapi.yaml` and `/_/raw/api/paths/history.yaml`
+as plain text, and the reference showed the history operation and its
+response schema.

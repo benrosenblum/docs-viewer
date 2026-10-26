@@ -157,7 +157,8 @@ layout. So does a hash that does not name a commit, and `branch` in a
 repository without a main branch. The viewer never gives a URL value to
 git as an option.
 
-`?raw=1` always gives the current file and ignores `diff`.
+`?raw=1` and `/_/raw/<repository path>` always give the current file and
+ignore `diff`.
 
 Only a bare URL changes its mode on live reload. A URL with `diff=off` or
 `diff=HEAD` keeps its mode.

@@ -208,6 +208,8 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.withIndex(w, r, h.historyJSON)
 	case p == "/_/events":
 		h.events(w, r)
+	case strings.HasPrefix(p, "/_/raw/"):
+		h.withIndex(w, r, h.rawPath)
 	case p == "/_/search":
 		h.withIndex(w, r, h.searchPage)
 	case p == "/_/graph":

@@ -231,22 +231,8 @@ func (h *Handler) isSpec(p string) bool {
 // file serves images and raw requests as bytes, drawings as drawing pages,
 // specs as API reference pages, and other text as a source page.
 func (h *Handler) file(w http.ResponseWriter, r *http.Request, idx *index, p string) {
-	raw := r.URL.Query().Get("raw") != ""
-	if contentType, ok := rawTypes[strings.ToLower(path.Ext(p))]; ok || raw {
-		f, err := h.root.Open(p)
-		if err != nil {
-			h.missing(w, r, idx)
-			return
-		}
-		defer f.Close()
-		if !ok {
-			contentType = "text/plain; charset=utf-8"
-		}
-		w.Header().Set("Content-Type", contentType)
-		if contentType == "image/svg+xml" {
-			w.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; sandbox")
-		}
-		http.ServeContent(w, r, path.Base(p), time.Time{}, f)
+	if _, ok := rawTypes[strings.ToLower(path.Ext(p))]; ok || r.URL.Query().Get("raw") != "" {
+		h.raw(w, r, idx, p)
 		return
 	}
 	pg := h.newPage(r, idx, "source", p)
@@ -264,7 +250,7 @@ func (h *Handler) file(w http.ResponseWriter, r *http.Request, idx *index, p str
 	if h.isSpec(p) {
 		// The toggle selects a form of the page, so it keeps diff mode off.
 		u := markdown.URL(p, "")
-		pg.Spec = &specView{RawURL: u + "?raw=1", ReferenceURL: u + "?diff=off", SourceURL: u + "?diff=off&view=source", Source: r.URL.Query().Get("view") == "source"}
+		pg.Spec = &specView{RawURL: "/_/raw" + u, ReferenceURL: u + "?diff=off", SourceURL: u + "?diff=off&view=source", Source: r.URL.Query().Get("view") == "source"}
 		if !pg.Spec.Source {
 			pg.Kind = "apispec"
 			w.Header().Set("Content-Security-Policy", specPolicy)
@@ -290,6 +276,42 @@ func (h *Handler) file(w http.ResponseWriter, r *http.Request, idx *index, p str
 		pg.Body = template.HTML(markdown.Highlight(data, "", path.Base(p), true))
 	}
 	h.render(w, r, http.StatusOK, pg)
+}
+
+// raw serves the bytes of the file p: an image or a PDF file with its type,
+// other files as plain text.
+func (h *Handler) raw(w http.ResponseWriter, r *http.Request, idx *index, p string) {
+	f, err := h.root.Open(p)
+	if err != nil {
+		h.missing(w, r, idx)
+		return
+	}
+	defer f.Close()
+	contentType, ok := rawTypes[strings.ToLower(path.Ext(p))]
+	if !ok {
+		contentType = "text/plain; charset=utf-8"
+	}
+	w.Header().Set("Content-Type", contentType)
+	if contentType == "image/svg+xml" {
+		w.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; sandbox")
+	}
+	http.ServeContent(w, r, path.Base(p), time.Time{}, f)
+}
+
+// rawPath serves /_/raw/<repository path> as the bytes of the file. A
+// relative URL in the file resolves below /_/raw/ too, so Redoc gets the
+// files of a split spec as bytes.
+func (h *Handler) rawPath(w http.ResponseWriter, r *http.Request, idx *index) {
+	p := strings.TrimPrefix(r.URL.Path, "/_/raw/")
+	if p == "" || path.Clean(p) != p || !allowed(p) {
+		h.missing(w, r, idx)
+		return
+	}
+	if info, err := h.stat(p); err != nil || !info.Mode().IsRegular() {
+		h.missing(w, r, idx)
+		return
+	}
+	h.raw(w, r, idx, p)
 }
 
 func size(n int) string {

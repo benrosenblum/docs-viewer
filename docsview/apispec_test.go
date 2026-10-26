@@ -8,11 +8,12 @@ import (
 
 // specFiles is a repository with an apispec vault and notes that link to it.
 var specFiles = map[string]string{
-	"docs/README.md":     "# Documentation\n",
-	"docs/USAGE.md":      "# Usage\n\nThe [consumer API](../apispec/app.yaml), [[apispec/admin.yaml]], and [[apispec/missing.yaml]].\n",
-	"apispec/app.yaml":   "openapi: 3.1.0\ninfo:\n  title: Consumer\n",
-	"apispec/admin.yaml": "openapi: 3.1.0\ninfo:\n  title: Operator\n",
-	"api/other.yaml":     "openapi: 3.1.0\n",
+	"docs/README.md":          "# Documentation\n",
+	"docs/USAGE.md":           "# Usage\n\nThe [consumer API](../apispec/app.yaml), [[apispec/admin.yaml]], and [[apispec/missing.yaml]].\n",
+	"apispec/app.yaml":        "openapi: 3.1.0\ninfo:\n  title: Consumer\n",
+	"apispec/admin.yaml":      "openapi: 3.1.0\ninfo:\n  title: Operator\n",
+	"apispec/paths/pets.yaml": "/pets:\n  get:\n    operationId: listPets\n",
+	"api/other.yaml":          "openapi: 3.1.0\n",
 }
 
 // specViewer opens a viewer with the apispec vault.
@@ -55,7 +56,7 @@ func TestSpecPage(t *testing.T) {
 	for _, want := range []string{
 		`data-kind="apispec"`,
 		`<script defer src="/_/assets/0123456789abcdef/redoc/redoc.standalone.js"></script>`,
-		`<div id="redoc" class="apispec" data-spec="/apispec/app.yaml?raw=1">`,
+		`<div id="redoc" class="apispec" data-spec="/_/raw/apispec/app.yaml">`,
 		`<a href="/apispec/app.yaml?diff=off" aria-current="page">Reference</a><a href="/apispec/app.yaml?diff=off&amp;view=source">Source</a>`,
 		`<a class="internal-link" href="/docs/USAGE.md" data-path="docs/USAGE.md">`,
 	} {
@@ -67,9 +68,16 @@ func TestSpecPage(t *testing.T) {
 		t.Errorf("spec page policy = %q", got)
 	}
 
-	raw := get(t, h, "/apispec/app.yaml?raw=1", 200)
-	if raw.Body.String() != specFiles["apispec/app.yaml"] || raw.Header().Get("Content-Security-Policy") != contentPolicy {
-		t.Errorf("raw spec = %q, policy %q", raw.Body.String(), raw.Header().Get("Content-Security-Policy"))
+	// Redoc resolves a relative $ref against the spec URL, so the file of
+	// a split spec is raw too, and the bare URL stays a page.
+	for _, p := range []string{"apispec/app.yaml", "apispec/paths/pets.yaml"} {
+		raw := get(t, h, "/_/raw/"+p, 200)
+		if raw.Body.String() != specFiles[p] || raw.Header().Get("Content-Type") != "text/plain; charset=utf-8" || raw.Header().Get("Content-Security-Policy") != contentPolicy {
+			t.Errorf("raw %s = %q, type %q, policy %q", p, raw.Body.String(), raw.Header().Get("Content-Type"), raw.Header().Get("Content-Security-Policy"))
+		}
+	}
+	if page := get(t, h, "/apispec/paths/pets.yaml", 200); page.Header().Get("Content-Type") != "text/html; charset=utf-8" {
+		t.Error("the bare URL of a split spec file is not a page")
 	}
 
 	source := get(t, h, "/apispec/app.yaml?view=source", 200)
