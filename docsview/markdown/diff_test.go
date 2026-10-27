@@ -237,7 +237,7 @@ func TestRenderDiffWords(t *testing.T) {
 		{"insert-only paragraph", "The pool holds connections.\n", "The pool holds four connections.\n",
 			[]string{`<p class="diff-changed" data-change="">The pool holds <ins class="diff-word">four</ins> connections.</p>`}, []string{"diff-removed", "diff-added"}},
 		{"delete-only paragraph", "The pool holds four connections.\n", "The pool holds connections.\n",
-			[]string{`<p class="diff-changed" data-change="">The pool holds <del class="diff-word">four</del> connections.</p>`}, []string{"diff-removed", "diff-added"}},
+			[]string{`<p class="diff-removed" data-change="">The pool holds <del class="diff-word">four</del> connections.</p>`, `<p class="diff-added">`}, []string{"diff-changed"}},
 		{"insert-only heading", "## Pool\n", "## Pool size\n",
 			[]string{`<h2 class="diff-changed" id="pool-size" data-change="">Pool <ins class="diff-word">size</ins></h2>`}, []string{"diff-removed", `id="pool"`}},
 		{"insert-only item", "- a\n- keep words\n- c\n", "- a\n- keep the words\n- c\n",

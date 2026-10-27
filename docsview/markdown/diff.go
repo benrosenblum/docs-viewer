@@ -541,7 +541,7 @@ func renderDiffWord(w util.BufWriter, _ []byte, node ast.Node, entering bool) (a
 // markWords adds word marks to each pair. A table row compares as one
 // text, with a boundary token for each column between its cells, so that
 // cells pair by column and the similarity is that of the whole row. A pair
-// whose source only inserts or only deletes words becomes one changed block.
+// whose source only inserts words becomes one changed block.
 func markWords(pairs []unitPair, source []byte) {
 	lines := newLineIndex(source)
 	for _, p := range pairs {
@@ -554,17 +554,13 @@ func markWords(pairs []unitPair, source []byte) {
 		default:
 			deleted, inserted = markInlines([]ast.Node{p.old.node}, []ast.Node{p.new.node}, source)
 		}
-		if deleted == inserted {
+		if deleted || !inserted {
 			continue
 		}
 		// The source must agree, so that a changed link target or format
 		// keeps both blocks.
-		oldRanges, newRanges, ok := linediff.Words(unitSource(p.old, lines, source), unitSource(p.new, lines, source))
-		switch {
-		case ok && inserted && len(oldRanges) == 0:
+		if removed, _, ok := linediff.Words(unitSource(p.old, lines, source), unitSource(p.new, lines, source)); ok && len(removed) == 0 {
 			joinPair(p.new.node, p.old.node)
-		case ok && deleted && len(newRanges) == 0:
-			joinPair(p.old.node, p.new.node)
 		}
 	}
 }
