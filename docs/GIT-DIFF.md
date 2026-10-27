@@ -256,7 +256,7 @@ both versions, with marks on the parts that changed:
 |------|-------|---------|---------|
 | ER entity, flowchart node | Green | Red, dashed border, struck text | Orange (the shape or the label changed) |
 | ER attribute row | Green | Red, struck text | |
-| Relationship, edge | Green line | Red dashed line | |
+| Relationship, edge | Green line | Red dashed line | Orange line (only the ER label changed) |
 
 A changed attribute type, such as `int id` to `bigint id`, shows as two
 rows: the old row removed and the new row added. The block has an orange
@@ -287,8 +287,13 @@ blocks do:
 - A diagram with another changed block in the same change, such as a
   changed caption paragraph between the base and the current diagram.
 
-A changed flowchart label shows the current label with an orange mark.
-An edge of that node shows two times: removed and added.
+A line that keeps its nodes and edges, and changes only node labels,
+node shapes, or an ER relationship label, is in the merged source one
+time, in its current form. Thus an edge on that line shows one time. For
+example, `A[Start] --> B` to `A[Begin] --> B` gives node `A` with the
+label "Begin" and an orange mark, and one unmarked edge. A change to an
+edge itself, such as its arrow, its flowchart label, or the cardinality
+of a relationship, shows the edge two times: removed and added.
 
 A merged diagram is not a scroll anchor. A change of the form at a merged
 diagram keeps the position of the next block.

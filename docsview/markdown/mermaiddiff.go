@@ -47,31 +47,61 @@ func mergeMermaid(old, cur string) (d mermaidDiff, ok bool) {
 	if approximate {
 		return d, false
 	}
-	var lines []string
-	var origins []origin
+	skeleton := flowchartSkeleton
+	if kind == "er" {
+		skeleton = erSkeleton
+	}
+	var lines []mermaidLine
 	add := func(text []string, o origin) {
 		for _, line := range text {
-			lines = append(lines, strings.TrimSuffix(line, "\n"))
-			origins = append(origins, o)
+			lines = append(lines, mermaidLine{text: strings.TrimSuffix(line, "\n"), origin: o})
 		}
 	}
-	for _, e := range edits {
+	for i, e := range edits {
 		switch e.Op {
 		case linediff.Equal:
 			add(b[e.NewStart:e.NewEnd], originBoth)
 		case linediff.Delete:
 			add(a[e.OldStart:e.OldEnd], originOld)
 		case linediff.Insert:
+			first := len(lines)
 			add(b[e.NewStart:e.NewEnd], originNew)
+			// Pair each added line with the removed line at the same place.
+			if i > 0 && edits[i-1].Op == linediff.Delete {
+				removed := lines[first-(edits[i-1].OldEnd-edits[i-1].OldStart) : first]
+				for j := range min(len(removed), len(lines)-first) {
+					o, n := &removed[j], &lines[first+j]
+					if k := skeleton(o.text); k != "" && k == skeleton(n.text) {
+						o.relabel, n.relabel = true, true
+					}
+				}
+			}
 		}
 	}
-	d = mermaidDiff{Type: kind, source: strings.Join(lines, "\n") + "\n"}
+	var source strings.Builder
+	for _, l := range lines {
+		if !l.relabel || l.origin != originOld {
+			source.WriteString(l.text + "\n")
+		}
+	}
+	d = mermaidDiff{Type: kind, source: source.String()}
 	if kind == "er" {
-		d.Marks = erMarks(lines, origins)
+		d.Marks = erMarks(lines)
 	} else {
-		d.Marks = flowchartMarks(lines, origins)
+		d.Marks = flowchartMarks(lines)
 	}
 	return d, len(d.Marks) > 0
+}
+
+// mermaidLine is a line of a merged diagram.
+type mermaidLine struct {
+	text   string
+	origin origin
+	// relabel marks a removed line and its added line that name the same
+	// nodes and edges and differ only in labels or shapes. The removed line
+	// is not in the merged source, so each edge shows one time; its labels
+	// still count for the changed mark.
+	relabel bool
 }
 
 // mermaidType returns er or flowchart from the first statement line.
@@ -116,11 +146,22 @@ func (c edgeCounter) next(from, to string) int {
 
 var (
 	erEntityOpen   = regexp.MustCompile(`^\s*("[^"]+"|[\w-]+)(?:\[[^\]]*\])?\s*\{\s*$`)
-	erRelationship = regexp.MustCompile(`^\s*("[^"]+"|[\w-]+)\s+[|}o][|o]\s*(?:--|\.\.)\s*[|o][|{o]\s+("[^"]+"|[\w-]+)`)
+	erRelationship = regexp.MustCompile(`^\s*("[^"]+"|[\w-]+)\s+([|}o][|o]\s*(?:--|\.\.)\s*[|o][|{o])\s+("[^"]+"|[\w-]+)`)
 )
 
-// erMarks marks entities, attribute rows, and relationships.
-func erMarks(lines []string, origins []origin) []mermaidMark {
+// erSkeleton returns the entities and the cardinality of a relationship
+// line without its label, or "".
+func erSkeleton(line string) string {
+	m := erRelationship.FindStringSubmatch(line)
+	if m == nil {
+		return ""
+	}
+	return m[1] + " " + strings.Join(strings.Fields(m[2]), "") + " " + m[3]
+}
+
+// erMarks marks entities, attribute rows, and relationships. A relationship
+// whose label changed is one changed edge.
+func erMarks(lines []mermaidLine) []mermaidMark {
 	var marks []mermaidMark
 	mentions := map[string][]origin{}
 	var order []string
@@ -134,8 +175,11 @@ func erMarks(lines []string, origins []origin) []mermaidMark {
 	rows := map[string]int{}
 	edges := edgeCounter{}
 	entity := "" // The open entity block.
-	for i, line := range lines {
-		o := origins[i]
+	for _, l := range lines {
+		line, o := l.text, l.origin
+		if l.relabel && o == originOld {
+			continue
+		}
 		text := strings.TrimSpace(line)
 		switch {
 		case text == "" || strings.HasPrefix(text, "%%"):
@@ -154,12 +198,16 @@ func erMarks(lines []string, origins []origin) []mermaidMark {
 			mention(entity, o)
 		case erRelationship.MatchString(line):
 			m := erRelationship.FindStringSubmatch(line)
-			from, to := strings.Trim(m[1], `"`), strings.Trim(m[2], `"`)
+			from, to := strings.Trim(m[1], `"`), strings.Trim(m[3], `"`)
+			diff := lineDiff([]origin{o})
+			if l.relabel {
+				o, diff = originBoth, "changed"
+			}
 			mention(from, o)
 			mention(to, o)
 			n := edges.next(from, to)
-			if o != originBoth {
-				marks = append(marks, mermaidMark{Kind: "edge", From: from, To: to, N: n, Diff: lineDiff([]origin{o})})
+			if diff != "" {
+				marks = append(marks, mermaidMark{Kind: "edge", From: from, To: to, N: n, Diff: diff})
 			}
 		}
 	}
@@ -191,75 +239,110 @@ var (
 	flowchartCls  = regexp.MustCompile(`^:::[\w-]+`)
 )
 
+// flowchartNode is a node in a flowchart line, with its shape text such as
+// "[label]", or "".
+type flowchartNode struct{ id, shape string }
+
+// parseFlowchart returns the nodes and the edges of a flowchart line, and
+// its skeleton: the line without shapes, classes, and spaces.
+func parseFlowchart(line string) (nodes []flowchartNode, edges [][2]string, skeleton string) {
+	if flowchartSkip.MatchString(line) {
+		return nil, nil, ""
+	}
+	var k strings.Builder
+	for statement := range strings.SplitSeq(line, ";") {
+		var prev []string
+		rest := statement
+		for {
+			var group []string
+			for {
+				m := flowchartID.FindStringSubmatch(rest)
+				if m == nil {
+					break
+				}
+				id := m[1]
+				rest = rest[len(m[0]):]
+				shape := shapeEnd(rest)
+				nodes = append(nodes, flowchartNode{id, rest[:shape]})
+				rest = rest[shape:]
+				rest = rest[len(flowchartCls.FindString(rest)):]
+				group = append(group, id)
+				k.WriteString(id)
+				and := flowchartAnd.FindString(rest)
+				if and == "" {
+					break
+				}
+				rest = rest[len(and):]
+				k.WriteString("&")
+			}
+			for _, from := range prev {
+				for _, to := range group {
+					edges = append(edges, [2]string{from, to})
+				}
+			}
+			edge := flowchartEdge.FindString(rest)
+			if edge == "" || len(group) == 0 {
+				break
+			}
+			rest = rest[len(edge):]
+			k.WriteString(strings.Join(strings.Fields(edge), " "))
+			prev = group
+		}
+		k.WriteString(";")
+	}
+	if len(nodes) == 0 {
+		return nil, nil, ""
+	}
+	return nodes, edges, k.String()
+}
+
+func flowchartSkeleton(line string) string {
+	_, _, k := parseFlowchart(line)
+	return k
+}
+
 // flowchartMarks marks nodes and edges. A node whose shape or label
 // differs between the old and the new lines is changed.
-func flowchartMarks(lines []string, origins []origin) []mermaidMark {
+func flowchartMarks(lines []mermaidLine) []mermaidMark {
 	var marks []mermaidMark
 	mentions := map[string][]origin{}
 	var order []string
 	oldShape, newShape := map[string]string{}, map[string]string{}
 	edges := edgeCounter{}
-	for i, line := range lines {
-		if flowchartSkip.MatchString(line) {
-			continue
+	for _, l := range lines {
+		nodes, lineEdges, _ := parseFlowchart(l.text)
+		o := l.origin
+		for _, n := range nodes {
+			if n.shape != "" && o != originNew {
+				oldShape[n.id] = n.shape
+			}
+			if n.shape != "" && o != originOld {
+				newShape[n.id] = n.shape
+			}
 		}
-		o := origins[i]
-		for statement := range strings.SplitSeq(line, ";") {
-			var prev []string
-			rest := statement
-			for {
-				var group []string
-				for {
-					m := flowchartID.FindStringSubmatch(rest)
-					if m == nil {
-						break
-					}
-					id := m[1]
-					rest = rest[len(m[0]):]
-					shape := shapeEnd(rest)
-					if shape > 0 {
-						if o != originNew {
-							oldShape[id] = rest[:shape]
-						}
-						if o != originOld {
-							newShape[id] = rest[:shape]
-						}
-						rest = rest[shape:]
-					}
-					rest = rest[len(flowchartCls.FindString(rest)):]
-					if _, ok := mentions[id]; !ok {
-						order = append(order, id)
-					}
-					mentions[id] = append(mentions[id], o)
-					group = append(group, id)
-					and := flowchartAnd.FindString(rest)
-					if and == "" {
-						break
-					}
-					rest = rest[len(and):]
-				}
-				for _, from := range prev {
-					for _, to := range group {
-						n := edges.next(from, to)
-						if o != originBoth {
-							marks = append(marks, mermaidMark{Kind: "edge", From: from, To: to, N: n, Diff: lineDiff([]origin{o})})
-						}
-					}
-				}
-				edge := flowchartEdge.FindString(rest)
-				if edge == "" || len(group) == 0 {
-					break
-				}
-				rest = rest[len(edge):]
-				prev = group
+		if l.relabel {
+			if o == originOld {
+				continue // Not in the merged source.
+			}
+			o = originBoth
+		}
+		for _, n := range nodes {
+			if _, ok := mentions[n.id]; !ok {
+				order = append(order, n.id)
+			}
+			mentions[n.id] = append(mentions[n.id], o)
+		}
+		for _, e := range lineEdges {
+			n := edges.next(e[0], e[1])
+			if o != originBoth {
+				marks = append(marks, mermaidMark{Kind: "edge", From: e[0], To: e[1], N: n, Diff: lineDiff([]origin{o})})
 			}
 		}
 	}
+	// A node without a shape shows its id, so "" is a shape too.
 	changed := map[string]bool{}
-	for id, s := range oldShape {
-		if t, ok := newShape[id]; ok && t != s {
-			changed[id] = true
-		}
+	for _, id := range order {
+		changed[id] = oldShape[id] != newShape[id]
 	}
 	return append(nodeMarks(order, mentions, changed), marks...)
 }

@@ -59,7 +59,17 @@ func TestMergeMermaid(t *testing.T) {
 		{"flowchart edge text", "flowchart TD\n  A --> B\n", "flowchart TD\n  A --> B\n  my-node -- some text --> B\n",
 			[]string{"node my-node added", "edge my-node B 0 added"}},
 		{"flowchart label changed", "flowchart TD\n  A[Start] --> B\n", "flowchart TD\n  A[Begin] --> B\n",
-			[]string{"node A changed", "edge A B 0 removed", "edge A B 1 added"}},
+			[]string{"node A changed"}},
+		{"flowchart shape removed", "flowchart TD\n  A[Start] --> B\n", "flowchart TD\n  A --> B\n",
+			[]string{"node A changed"}},
+		{"flowchart edge label changed", "flowchart TD\n  A -->|yes| B\n", "flowchart TD\n  A -->|ok| B\n",
+			[]string{"edge A B 0 removed", "edge A B 1 added"}},
+		{"flowchart label and new edge", "flowchart TD\n  A[Start] --> B\n", "flowchart TD\n  A[Begin] --> B --> C\n",
+			[]string{"node A changed", "node C added", "edge A B 0 removed", "edge A B 1 added", "edge B C 0 added"}},
+		{"relationship label changed", erBase, strings.Replace(erBase, ": places", ": orders", 1),
+			[]string{"edge CUSTOMER ORDER 0 changed"}},
+		{"relationship cardinality changed", erBase, strings.Replace(erBase, "||--o{", "||--|{", 1),
+			[]string{"edge CUSTOMER ORDER 0 removed", "edge CUSTOMER ORDER 1 added"}},
 		{"flowchart shapes", "flowchart TD\n  A --> B\n", "flowchart TD\n  A --> B\n  B ==> C((round)):::hot\n  C --> D[(db)]\n  D --> E{{\"x [y]\"}}\n",
 			[]string{"node C added", "node D added", "node E added", "edge B C 0 added", "edge C D 0 added", "edge D E 0 added"}},
 	} {
@@ -75,6 +85,18 @@ func TestMergeMermaidSource(t *testing.T) {
 	want := strings.Replace(erBase, "    int id\n", "    int id\n    bigint id\n", 1)
 	if !ok || d.source != want || d.Type != "er" {
 		t.Errorf("ok %v type %q source:\n%s", ok, d.Type, d.source)
+	}
+}
+
+// A relabeled line is only in its new form in the merged source.
+func TestMergeMermaidRelabelSource(t *testing.T) {
+	d, ok := mergeMermaid("flowchart TD\n  A[Start] --> B\n  B --> C\n", "flowchart TD\n  A[Begin] --> B\n  B --> C\n")
+	if want := "flowchart TD\n  A[Begin] --> B\n  B --> C\n"; !ok || d.source != want {
+		t.Errorf("ok %v source:\n%s", ok, d.source)
+	}
+	d, ok = mergeMermaid(erBase, strings.Replace(erBase, ": places", ": orders", 1))
+	if want := strings.Replace(erBase, ": places", ": orders", 1); !ok || d.source != want {
+		t.Errorf("ok %v source:\n%s", ok, d.source)
 	}
 }
 

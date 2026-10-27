@@ -2895,7 +2895,7 @@ svg :is(.node, .row-rect-odd, .row-rect-even):is(.diff-added, .diff-removed, .di
 
 svg .node:is(.diff-added, .diff-removed, .diff-changed) > :is(rect, polygon, circle, ellipse, path),
 svg .node:is(.diff-added, .diff-removed, .diff-changed) > .outer-path path,
-svg path:is(.diff-added, .diff-removed)[data-et="edge"] {
+svg path:is(.diff-added, .diff-removed, .diff-changed)[data-et="edge"] {
   stroke: var(--diagram-mark) !important;
   stroke-width: 2px !important;
 }
@@ -2911,7 +2911,7 @@ svg .label.diff-removed :is(span, p) {
   text-decoration: line-through;
 }
 
-svg .edgeLabel:is(.diff-added, .diff-removed) :is(span, p) {
+svg .edgeLabel:is(.diff-added, .diff-removed, .diff-changed) :is(span, p) {
   color: var(--diagram-mark) !important;
 }
 
