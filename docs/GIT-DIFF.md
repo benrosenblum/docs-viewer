@@ -222,12 +222,11 @@ render as on the normal page.
   the position where it was.
 - A changed block shows its base version with a red mark, then its current
   version with a green mark.
-- A changed block that only adds words shows one time, with an orange mark
-  (changed). The added words have word marks. A changed block that only
-  removes words also shows one time: the base version, with the removed
-  words marked. This applies to a paragraph, a heading, a list item, and a
-  table row. The source must also only add (or only remove) text. Thus a
-  changed link target or a new emphasis keeps the two versions.
+- A changed block that only adds words shows one time: the current
+  version, with an orange mark (changed). The added words have word marks.
+  This applies to a paragraph, a heading, a list item, and a table row.
+  The source must also only add text. Thus a changed link target or a new
+  emphasis keeps the two versions.
 - A change to the front matter gives the properties section an orange
   mark. The section shows the current values. The source diff shows the
   exact change.
@@ -266,11 +265,11 @@ mark.
 ```mermaid
 flowchart TD
     A["Base and current diagram"] --> B["Line diff of the two sources"]
-    B --> C["Merged source:<br>unchanged lines one time,<br>then removed, then added lines"]
+    B --> C["Merged source: unchanged lines one time, then removed, then added lines"]
     C --> D["Marks from the origin of each line"]
     D --> E{"Merged diagram renders?"}
     E -->|Yes| F["One diagram with marks"]
-    E -->|No| G["Base and current diagram,<br>red and green"]
+    E -->|No| G["Base and current diagram, red and green"]
 ```
 
 The viewer makes the merged source from the two diagram sources, as it
@@ -285,9 +284,14 @@ blocks do:
 - A diagram whose type changed.
 - A merged diagram that Mermaid cannot draw. For example, a renamed
   entity gives two open entity blocks.
+- A diagram with another changed block in the same change, such as a
+  changed caption paragraph between the base and the current diagram.
 
 A changed flowchart label shows the current label with an orange mark.
 An edge of that node shows two times: removed and added.
+
+A merged diagram is not a scroll anchor. A change of the form at a merged
+diagram keeps the position of the next block.
 
 ## Source diff
 
