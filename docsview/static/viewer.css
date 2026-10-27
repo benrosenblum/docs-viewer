@@ -2857,12 +2857,62 @@ body[data-kind="graph"] [data-action="toggle-right"] {
   box-shadow: inset 3px 0 0 var(--diff-removed);
 }
 
+.markdown-body tr.diff-changed > * {
+  background: var(--diff-changed-bg);
+}
+
+.markdown-body tr.diff-changed > :first-child {
+  box-shadow: inset 3px 0 0 var(--diff-changed);
+}
+
 .markdown-body table.diff-added {
   box-shadow: -3px 0 0 var(--diff-added);
 }
 
 .markdown-body table.diff-removed {
   box-shadow: -3px 0 0 var(--diff-removed);
+}
+
+/* Marks in a merged diagram (viewer.js markMermaidDiff). Not scoped to the
+   page, so that the lightbox copy keeps them. Mermaid's rules use an id
+   selector, so these need !important. Removed parts are dashed and struck
+   through, so the mark does not depend on color. */
+svg .diff-added {
+  --diagram-mark: var(--diff-added);
+}
+
+svg .diff-removed {
+  --diagram-mark: var(--diff-removed);
+}
+
+svg .diff-changed {
+  --diagram-mark: var(--diff-changed);
+}
+
+svg :is(.node, .row-rect-odd, .row-rect-even):is(.diff-added, .diff-removed, .diff-changed) :is(rect, polygon, circle, ellipse, path) {
+  fill: color-mix(in srgb, var(--diagram-mark) 22%, var(--bg-primary)) !important;
+}
+
+svg .node:is(.diff-added, .diff-removed, .diff-changed) > :is(rect, polygon, circle, ellipse, path),
+svg .node:is(.diff-added, .diff-removed, .diff-changed) > .outer-path path,
+svg path:is(.diff-added, .diff-removed, .diff-changed)[data-et="edge"] {
+  stroke: var(--diagram-mark) !important;
+  stroke-width: 2px !important;
+}
+
+svg .node.diff-removed > :is(rect, polygon, circle, ellipse, path),
+svg .node.diff-removed > .outer-path path,
+svg path.diff-removed[data-et="edge"] {
+  stroke-dasharray: 6 4 !important;
+}
+
+svg .diff-removed :is(span, p),
+svg .label.diff-removed :is(span, p) {
+  text-decoration: line-through;
+}
+
+svg .edgeLabel:is(.diff-added, .diff-removed, .diff-changed) :is(span, p) {
+  color: var(--diagram-mark) !important;
 }
 
 /* Word marks: a stronger tint of the same color. Removed words are struck

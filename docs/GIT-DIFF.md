@@ -222,6 +222,11 @@ render as on the normal page.
   the position where it was.
 - A changed block shows its base version with a red mark, then its current
   version with a green mark.
+- A changed block that only adds words shows one time: the current
+  version, with an orange mark (changed). The added words have word marks.
+  This applies to a paragraph, a heading, a list item, and a table row.
+  The source must also only add text. Thus a changed link target or a new
+  emphasis keeps the two versions.
 - A change to the front matter gives the properties section an orange
   mark. The section shows the current values. The source diff shows the
   exact change.
@@ -240,6 +245,58 @@ renderer marks each block from the origin of its lines.
 
 A note larger than 1 MiB, or a merged source that does not render, shows
 the source diff with a message.
+
+### Changed diagrams
+
+A changed Mermaid ER diagram (`erDiagram`) or flowchart (`flowchart`,
+`graph`) shows as one diagram, not as two. The diagram has the parts of
+both versions, with marks on the parts that changed:
+
+| Part | Added | Removed | Changed |
+|------|-------|---------|---------|
+| ER entity, flowchart node | Green | Red, dashed border, struck text | Orange (the shape or the label changed) |
+| ER attribute row | Green | Red, struck text | |
+| Relationship, edge | Green line | Red dashed line | Orange line (only the ER label changed) |
+
+A changed attribute type, such as `int id` to `bigint id`, shows as two
+rows: the old row removed and the new row added. The block has an orange
+mark.
+
+```mermaid
+flowchart TD
+    A["Base and current diagram"] --> B["Line diff of the two sources"]
+    B --> C["Merged source: unchanged lines one time, then removed, then added lines"]
+    C --> D["Marks from the origin of each line"]
+    D --> E{"Merged diagram renders?"}
+    E -->|Yes| F["One diagram with marks"]
+    E -->|No| G["Base and current diagram, red and green"]
+```
+
+The viewer makes the merged source from the two diagram sources, as it
+does for the note. A part is added when each line that names it is new,
+and removed when each line that names it is old. The browser finds each
+marked part in the drawn diagram and adds the mark.
+
+These diagrams show the base version and the current version, as other
+blocks do:
+
+- A diagram of another type, such as a sequence diagram.
+- A diagram whose type changed.
+- A merged diagram that Mermaid cannot draw. For example, a renamed
+  entity gives two open entity blocks.
+- A diagram with another changed block in the same change, such as a
+  changed caption paragraph between the base and the current diagram.
+
+A line that keeps its nodes and edges, and changes only node labels,
+node shapes, or an ER relationship label, is in the merged source one
+time, in its current form. Thus an edge on that line shows one time. For
+example, `A[Start] --> B` to `A[Begin] --> B` gives node `A` with the
+label "Begin" and an orange mark, and one unmarked edge. A change to an
+edge itself, such as its arrow, its flowchart label, or the cardinality
+of a relationship, shows the edge two times: removed and added.
+
+A merged diagram is not a scroll anchor. A change of the form at a merged
+diagram keeps the position of the next block.
 
 ## Source diff
 
@@ -282,8 +339,9 @@ The two forms also mark the changed words in a changed line or block.
   green background. In the rendered diff, removed words also have a line
   through them.
 - In the rendered diff, a word mark keeps the formatting: a changed word
-  in a link stays in the link, and the link still works. An inline code
-  span, inline math, a wikilink, a tag, or an image is one word.
+  in a link stays in the link, and the link still works. A changed word
+  in an inline code span stays in the code span. Inline math, a wikilink,
+  a tag, or an image is one word.
 
 Word marks do not show in these cases:
 
@@ -292,7 +350,8 @@ Word marks do not show in these cases:
 - A line or a block is longer than 10 000 bytes.
 - The block is a code block, a math block, a diagram, an HTML block, or a
   table that changed its header row. These blocks get block marks only.
-  The source diff shows their word changes.
+  The source diff shows their word changes. An ER diagram or a flowchart
+  gets marks on its parts (see [Changed diagrams](#changed-diagrams)).
 
 ## Change count
 
