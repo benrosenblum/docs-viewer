@@ -529,18 +529,51 @@ func renderDiffWord(w util.BufWriter, _ []byte, node ast.Node, entering bool) (a
 
 // markWords adds word marks to each pair. A table row compares as one
 // text, with a boundary token for each column between its cells, so that
-// cells pair by column and the similarity is that of the whole row.
+// cells pair by column and the similarity is that of the whole row. A pair
+// whose source only inserts or only deletes words becomes one changed block.
 func markWords(pairs []unitPair, source []byte) {
+	lines := newLineIndex(source)
 	for _, p := range pairs {
+		var deleted, inserted bool
 		switch p.old.kind {
 		case unitRow:
-			markInlines(childNodes(p.old.node), childNodes(p.new.node), source)
+			deleted, inserted = markInlines(childNodes(p.old.node), childNodes(p.new.node), source)
 		case unitItem:
-			markInlines([]ast.Node{p.old.node.FirstChild()}, []ast.Node{p.new.node.FirstChild()}, source)
+			deleted, inserted = markInlines([]ast.Node{p.old.node.FirstChild()}, []ast.Node{p.new.node.FirstChild()}, source)
 		default:
-			markInlines([]ast.Node{p.old.node}, []ast.Node{p.new.node}, source)
+			deleted, inserted = markInlines([]ast.Node{p.old.node}, []ast.Node{p.new.node}, source)
+		}
+		if deleted == inserted {
+			continue
+		}
+		// The source must agree, so that a changed link target or format
+		// keeps both blocks.
+		oldRanges, newRanges, ok := linediff.Words(unitSource(p.old, lines, source), unitSource(p.new, lines, source))
+		switch {
+		case ok && inserted && len(oldRanges) == 0:
+			joinPair(p.new.node, p.old.node)
+		case ok && deleted && len(newRanges) == 0:
+			joinPair(p.old.node, p.new.node)
 		}
 	}
+}
+
+// unitSource returns the source lines of u.
+func unitSource(u unit, lines lineIndex, source []byte) string {
+	end := len(source)
+	if u.end < len(lines) {
+		end = lines[u.end]
+	}
+	return string(source[lines[u.start]:end])
+}
+
+// joinPair keeps one block of a pair as changed and removes the other.
+func joinPair(keep, drop ast.Node) {
+	keep.SetAttributeString("class", []byte("diff-changed"))
+	if _, ok := drop.AttributeString("data-change"); ok {
+		keep.SetAttributeString("data-change", []byte(""))
+	}
+	drop.Parent().RemoveChild(drop.Parent(), drop)
 }
 
 // piece is a text node or an atomic inline node in the joined text of a
@@ -553,14 +586,15 @@ type piece struct {
 }
 
 // markInlines compares the inline content of two lists of blocks, such as
-// the cells of two rows, and wraps the changed parts in diffWord nodes.
-func markInlines(oldBlocks, newBlocks []ast.Node, source []byte) {
+// the cells of two rows, and wraps the changed parts in diffWord nodes. It
+// reports whether it marked deleted and inserted words.
+func markInlines(oldBlocks, newBlocks []ast.Node, source []byte) (deleted, inserted bool) {
 	atoms := map[string]rune{}
 	oldPieces, oldText := inlinePieces(oldBlocks, source, atoms)
 	newPieces, newText := inlinePieces(newBlocks, source, atoms)
 	oldRanges, newRanges, ok := linediff.Words(oldText, newText)
 	if !ok {
-		return
+		return false, false
 	}
 	wrapRanges(oldPieces, oldRanges, false)
 	wrapRanges(newPieces, newRanges, true)
@@ -569,6 +603,7 @@ func markInlines(oldBlocks, newBlocks []ast.Node, source []byte) {
 			joinWords(block)
 		}
 	}
+	return len(oldRanges) > 0, len(newRanges) > 0
 }
 
 // joinWords merges adjacent word marks of the same kind. A change that

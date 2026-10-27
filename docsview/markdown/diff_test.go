@@ -206,6 +206,14 @@ func TestRenderDiffBlocks(t *testing.T) {
 	}
 }
 
+// A joined heading pair leaves only the kept heading in the outline.
+func TestRenderDiffJoinedHeading(t *testing.T) {
+	d := renderDiff(t, "## Pool\n\nText.\n", "## Pool size\n\nText.\n")
+	if len(d.Headings) != 1 || d.Headings[0].ID != "pool-size" || d.Changes != 1 {
+		t.Errorf("headings %+v, %d changes", d.Headings, d.Changes)
+	}
+}
+
 func TestRenderDiffProperties(t *testing.T) {
 	d := renderDiff(t, "---\nstatus: draft\n---\n# T\n", "---\nstatus: final\n---\n# T\n")
 	if !d.PropertiesChanged || d.Properties[0].Values[0].Text != "final" || strings.Contains(d.HTML, "diff-") {
@@ -225,7 +233,21 @@ func TestRenderDiffWords(t *testing.T) {
 			[]string{`<p class="diff-removed" data-change="">The pool holds <del class="diff-word">four</del> connections.</p>`,
 				`<p class="diff-added">The pool holds <ins class="diff-word">eight</ins> connections.</p>`}, nil},
 		{"changed link text", "See [the engine](https://example.com/engine) for more.\n", "See [the render engine](https://example.com/engine) for more.\n",
-			[]string{`>the engine</a>`, `>the <ins class="diff-word">render</ins> engine</a>`}, []string{"<del"}},
+			[]string{`<p class="diff-changed" data-change="">See <a`, `>the <ins class="diff-word">render</ins> engine</a>`}, []string{"<del", "diff-removed", "diff-added"}},
+		{"insert-only paragraph", "The pool holds connections.\n", "The pool holds four connections.\n",
+			[]string{`<p class="diff-changed" data-change="">The pool holds <ins class="diff-word">four</ins> connections.</p>`}, []string{"diff-removed", "diff-added"}},
+		{"delete-only paragraph", "The pool holds four connections.\n", "The pool holds connections.\n",
+			[]string{`<p class="diff-changed" data-change="">The pool holds <del class="diff-word">four</del> connections.</p>`}, []string{"diff-removed", "diff-added"}},
+		{"insert-only heading", "## Pool\n", "## Pool size\n",
+			[]string{`<h2 class="diff-changed" id="pool-size" data-change="">Pool <ins class="diff-word">size</ins></h2>`}, []string{"diff-removed", `id="pool"`}},
+		{"insert-only item", "- a\n- keep words\n- c\n", "- a\n- keep the words\n- c\n",
+			[]string{`<li class="diff-changed" data-change="">keep <ins class="diff-word">the</ins> words</li>`}, []string{"diff-removed", "diff-added"}},
+		{"insert-only row", "| A | B |\n|---|---|\n| x | `{id}` |\n", "| A | B |\n|---|---|\n| x | `{id,at}` |\n",
+			[]string{`<tr class="diff-changed" data-change="">`, "<code>{id<ins class=\"diff-word\">,at</ins>}</code>"}, []string{"diff-removed", "diff-added"}},
+		{"changed link target", "See [the engine](a.md).\n", "See [the render engine](b.md).\n",
+			[]string{`<p class="diff-removed" data-change="">`, `<p class="diff-added">`}, []string{"diff-changed"}},
+		{"changed format", "A very old text.\n", "A *very* old text.\n",
+			[]string{`<p class="diff-removed" data-change="">`, `<p class="diff-added">`}, []string{"diff-changed"}},
 		{"changed table cell", "| Name | Size |\n|---|---|\n| pool | 4 |\n", "| Name | Size |\n|---|---|\n| pool | 8 |\n",
 			[]string{`<td>pool</td>`, `<td><del class="diff-word">4</del></td>`, `<td><ins class="diff-word">8</ins></td>`}, nil},
 		{"rewritten paragraph", "The parser reads every line.\n", "Reload sends pages to browsers.\n",
@@ -261,7 +283,7 @@ func TestRenderDiffWords(t *testing.T) {
 		}
 	}
 	// The link target does not change.
-	d := renderDiff(t, "See [the engine](CLI.md).\n", "See [the render engine](CLI.md).\n")
+	d := renderDiff(t, "See [the engine](CLI.md).\n", "See [a render engine](CLI.md).\n")
 	if hrefs := regexp.MustCompile(`href="[^"]*"`).FindAllString(d.HTML, -1); len(hrefs) != 2 || hrefs[0] != hrefs[1] || hrefs[0] != `href="/docs/CLI.md"` {
 		t.Errorf("link targets: %v\n%s", hrefs, d.HTML)
 	}

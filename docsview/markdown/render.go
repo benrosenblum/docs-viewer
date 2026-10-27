@@ -2,6 +2,7 @@ package markdown
 
 import (
 	"bytes"
+	"slices"
 	"strings"
 	"sync"
 
@@ -201,6 +202,8 @@ func (transformer) Transform(doc *ast.Document, reader text.Reader, pc parser.Co
 		return
 	}
 	markWords(pairs, source)
+	// markWords removes the dropped block of a joined pair.
+	st.headings = slices.DeleteFunc(st.headings, func(h heading) bool { return h.node.Parent() == nil })
 	st.resolve(doc, source)
 }
 
