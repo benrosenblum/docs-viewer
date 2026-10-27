@@ -247,6 +247,48 @@ renderer marks each block from the origin of its lines.
 A note larger than 1 MiB, or a merged source that does not render, shows
 the source diff with a message.
 
+### Changed diagrams
+
+A changed Mermaid ER diagram (`erDiagram`) or flowchart (`flowchart`,
+`graph`) shows as one diagram, not as two. The diagram has the parts of
+both versions, with marks on the parts that changed:
+
+| Part | Added | Removed | Changed |
+|------|-------|---------|---------|
+| ER entity, flowchart node | Green | Red, dashed border, struck text | Orange (the shape or the label changed) |
+| ER attribute row | Green | Red, struck text | |
+| Relationship, edge | Green line | Red dashed line | |
+
+A changed attribute type, such as `int id` to `bigint id`, shows as two
+rows: the old row removed and the new row added. The block has an orange
+mark.
+
+```mermaid
+flowchart TD
+    A["Base and current diagram"] --> B["Line diff of the two sources"]
+    B --> C["Merged source:<br>unchanged lines one time,<br>then removed, then added lines"]
+    C --> D["Marks from the origin of each line"]
+    D --> E{"Merged diagram renders?"}
+    E -->|Yes| F["One diagram with marks"]
+    E -->|No| G["Base and current diagram,<br>red and green"]
+```
+
+The viewer makes the merged source from the two diagram sources, as it
+does for the note. A part is added when each line that names it is new,
+and removed when each line that names it is old. The browser finds each
+marked part in the drawn diagram and adds the mark.
+
+These diagrams show the base version and the current version, as other
+blocks do:
+
+- A diagram of another type, such as a sequence diagram.
+- A diagram whose type changed.
+- A merged diagram that Mermaid cannot draw. For example, a renamed
+  entity gives two open entity blocks.
+
+A changed flowchart label shows the current label with an orange mark.
+An edge of that node shows two times: removed and added.
+
 ## Source diff
 
 The source diff is the only form for a file that is not a note, and the
@@ -299,7 +341,8 @@ Word marks do not show in these cases:
 - A line or a block is longer than 10 000 bytes.
 - The block is a code block, a math block, a diagram, an HTML block, or a
   table that changed its header row. These blocks get block marks only.
-  The source diff shows their word changes.
+  The source diff shows their word changes. An ER diagram or a flowchart
+  gets marks on its parts (see [Changed diagrams](#changed-diagrams)).
 
 ## Change count
 
