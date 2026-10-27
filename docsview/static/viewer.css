@@ -2857,6 +2857,14 @@ body[data-kind="graph"] [data-action="toggle-right"] {
   box-shadow: inset 3px 0 0 var(--diff-removed);
 }
 
+.markdown-body tr.diff-changed > * {
+  background: var(--diff-changed-bg);
+}
+
+.markdown-body tr.diff-changed > :first-child {
+  box-shadow: inset 3px 0 0 var(--diff-changed);
+}
+
 .markdown-body table.diff-added {
   box-shadow: -3px 0 0 var(--diff-added);
 }
