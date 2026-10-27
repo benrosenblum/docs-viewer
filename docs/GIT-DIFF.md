@@ -282,8 +282,9 @@ The two forms also mark the changed words in a changed line or block.
   green background. In the rendered diff, removed words also have a line
   through them.
 - In the rendered diff, a word mark keeps the formatting: a changed word
-  in a link stays in the link, and the link still works. An inline code
-  span, inline math, a wikilink, a tag, or an image is one word.
+  in a link stays in the link, and the link still works. A changed word
+  in an inline code span stays in the code span. Inline math, a wikilink,
+  a tag, or an image is one word.
 
 Word marks do not show in these cases:
 

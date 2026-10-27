@@ -260,6 +260,7 @@ func (nodeRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
 	reg.Register(kindDiffWord, renderDiffWord)
 	reg.Register(ast.KindFencedCodeBlock, renderCode)
 	reg.Register(ast.KindCodeBlock, renderCode)
+	reg.Register(ast.KindCodeSpan, renderCodeSpan)
 	reg.Register(ast.KindLink, renderLink)
 	reg.Register(ast.KindAutoLink, renderAutoLink)
 }

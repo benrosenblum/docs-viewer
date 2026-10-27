@@ -614,7 +614,7 @@ func inlinePieces(blocks []ast.Node, source []byte, atoms map[string]rune) ([]pi
 					b.WriteByte(' ')
 				}
 			case *comment:
-			case *ast.CodeSpan, *mathInline, *wikilink, *tag, *ast.Image, *ast.RawHTML, *ast.AutoLink, *ast.String:
+			case *mathInline, *wikilink, *tag, *ast.Image, *ast.RawHTML, *ast.AutoLink, *ast.String:
 				start := b.Len()
 				b.WriteRune(atom(atomKey(c, source)))
 				pieces = append(pieces, piece{c, start, b.Len(), false})
