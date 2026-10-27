@@ -344,6 +344,58 @@
     node.style.setProperty('--diagram-natural-width', Math.ceil(width) + 'px');
   }
 
+  /**
+   * Marks the parts of a merged diagram of a rendered diff from its
+   * data-diff (mermaiddiff.go). The patterns follow the SVG ids of the
+   * pinned Mermaid.
+   */
+  function markMermaidDiff(node) {
+    const svg = node.querySelector(':scope > svg');
+    let diff;
+    try {
+      diff = JSON.parse(node.dataset.diff);
+    } catch (err) {
+      return;
+    }
+    const er = diff.type === 'er';
+    const mark = (el, kind) => el && el.classList.add('diff-' + kind);
+    const nodeOf = (id) => {
+      const pattern = new RegExp('-' + (er ? 'entity' : 'flowchart') + '-' + escapeRegExp(id) + '-\\d+$');
+      return all('g.node', svg).find((g) => pattern.test(g.id));
+    };
+    for (const m of diff.marks) {
+      if (m.kind === 'node') {
+        mark(nodeOf(m.id), m.diff);
+      } else if (m.kind === 'row') {
+        const entity = nodeOf(m.id);
+        if (!entity) continue;
+        for (const part of ['.row-rect-odd, .row-rect-even', '.attribute-type', '.attribute-name', '.attribute-keys', '.attribute-comment']) {
+          mark(all(part, entity)[m.n], m.diff);
+        }
+      } else if (m.kind === 'edge') {
+        const from = escapeRegExp(m.from);
+        const to = escapeRegExp(m.to);
+        const pattern = er ? new RegExp(`^id_entity-${from}-\\d+_entity-${to}-\\d+_\\d+$`) : new RegExp(`^L_${from}_${to}_\\d+$`);
+        const edge = all('path[data-et="edge"]', svg).filter((path) => pattern.test(path.dataset.id))[m.n];
+        if (!edge) continue;
+        mark(edge, m.diff);
+        const label = svg.querySelector(`g.label[data-id="${CSS.escape(edge.dataset.id)}"]`);
+        mark(label && label.closest('.edgeLabel'), m.diff);
+      }
+    }
+  }
+
+  /** Replaces a merged diagram that did not render with the two versions. */
+  function unmergeMermaidDiff(node) {
+    const box = node.parentElement;
+    const template = box && box.classList.contains('mermaid-diff') && box.querySelector(':scope > template');
+    if (!template) return false;
+    const parent = box.parentElement;
+    box.replaceWith(template.content);
+    renderMermaid(parent);
+    return true;
+  }
+
   /** Removes the scratch containers Mermaid leaves in <body> when a render fails. */
   function removeMermaidLeftovers() {
     for (const stray of all('body > [id^="dmermaid"], body > svg[id^="mermaid"]')) stray.remove();
@@ -498,8 +550,9 @@
             if (!node.querySelector(':scope > svg')) throw new Error('Mermaid produced no diagram.');
             node.classList.add('is-rendered');
             sizeMermaid(node);
+            if (node.dataset.diff) markMermaidDiff(node);
           } catch (err) {
-            showMermaidError(node, err);
+            if (!unmergeMermaidDiff(node)) showMermaidError(node, err);
           }
           removeMermaidLeftovers();
         }
