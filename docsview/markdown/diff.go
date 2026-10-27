@@ -383,6 +383,7 @@ type unitPair struct{ old, new unit }
 // lines, and returns the pairs of units for word marks.
 func (d *diffState) markUnits(doc ast.Node, source []byte) []unitPair {
 	removed, added := map[int][]unit{}, map[int][]unit{}
+	diagrams := map[origin]map[int][]*ast.FencedCodeBlock{originOld: {}, originNew: {}}
 	covered := map[ast.Node]bool{} // Tables marked as one unit.
 	started := map[int]bool{}      // Changes that have their first mark.
 	// start counts a change at its first mark. A mixed unit has no change
@@ -420,6 +421,9 @@ func (d *diffState) markUnits(doc ast.Node, source []byte) []unitPair {
 		switch u.kind {
 		case unitCode, unitHTML, unitMath:
 			wrapBlock(u.node, class, start(hunk))
+			if n, ok := u.node.(*ast.FencedCodeBlock); ok && isMermaid(n, source) && diagrams[o] != nil {
+				diagrams[o][hunk] = append(diagrams[o][hunk], n)
+			}
 		case unitComment:
 		default:
 			mark(u.node, class, hunk)
@@ -430,6 +434,13 @@ func (d *diffState) markUnits(doc ast.Node, source []byte) []unitPair {
 				removed[hunk] = append(removed[hunk], u)
 			} else if o == originNew {
 				added[hunk] = append(added[hunk], u)
+			}
+		}
+	}
+	for hunk, old := range diagrams[originOld] {
+		for i, n := range old {
+			if i < len(diagrams[originNew][hunk]) {
+				joinMermaid(n, diagrams[originNew][hunk][i], source)
 			}
 		}
 	}
