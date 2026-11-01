@@ -43,9 +43,23 @@ func (h *Handler) subscribe() (<-chan *index, func()) {
 	}
 }
 
+// publish gives idx to each subscriber. It replaces a result that a busy
+// subscriber did not read, so that the last result is never lost.
+func (h *Handler) publish(idx *index) {
+	h.poller.mu.Lock()
+	defer h.poller.mu.Unlock()
+	for updates := range h.poller.subs {
+		select {
+		case <-updates:
+		default:
+		}
+		updates <- idx // Buffered and empty: only publish sends.
+	}
+}
+
 // poll scans once on each tick and publishes the snapshot, also an unchanged
 // one: each connection then checks the git key and the viewed file, which the
-// scan does not see. A subscriber that is busy gets the next result.
+// scan does not see.
 func (h *Handler) poll(quit <-chan struct{}) {
 	ticks, stop := h.ticker()
 	defer stop()
@@ -54,18 +68,9 @@ func (h *Handler) poll(quit <-chan struct{}) {
 		case <-quit:
 			return
 		case <-ticks:
-			idx, err := h.current()
-			if err != nil {
-				continue
+			if idx, err := h.current(); err == nil {
+				h.publish(idx)
 			}
-			h.poller.mu.Lock()
-			for updates := range h.poller.subs {
-				select {
-				case updates <- idx:
-				default:
-				}
-			}
-			h.poller.mu.Unlock()
 		}
 	}
 }

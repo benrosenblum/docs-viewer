@@ -527,6 +527,20 @@ func TestSharedPollLoop(t *testing.T) {
 	}
 }
 
+// TestPublishKeepsNewest checks that a busy subscriber gets the last snapshot.
+func TestPublishKeepsNewest(t *testing.T) {
+	h, _ := fixture(t, sample)
+	h.ticker = func() (<-chan time.Time, func()) { return nil, func() {} }
+	updates, unsubscribe := h.subscribe()
+	defer unsubscribe()
+	older, newer := &index{}, &index{}
+	h.publish(older)
+	h.publish(newer)
+	if got := <-updates; got != newer {
+		t.Fatal("the subscriber got the older snapshot")
+	}
+}
+
 // awaitEvent reads the stream up to the named event.
 func awaitEvent(t *testing.T, events *bufio.Reader, name string) {
 	t.Helper()
