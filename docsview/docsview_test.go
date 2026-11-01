@@ -3,7 +3,6 @@ package docsview
 import (
 	"bufio"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -485,7 +484,8 @@ func TestSharedPollLoop(t *testing.T) {
 	}
 	before := h.scans.Load()
 	for i := range 3 {
-		write(t, filepath.Join(repo, "docs/ref/plan.md"), fmt.Sprintf("# Plan\n\nEdit %d\n", i))
+		// Each size is new, for a file system with coarse timestamps.
+		write(t, filepath.Join(repo, "docs/ref/plan.md"), "# Plan\n\n"+strings.Repeat("Edit\n", i+1))
 		ticks <- time.Time{}
 		for _, events := range streams {
 			awaitEvent(t, events, "change")

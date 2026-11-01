@@ -30,7 +30,8 @@ func (h *Handler) subscribe() (<-chan *index, func()) {
 	defer p.mu.Unlock()
 	if len(p.subs) == 0 {
 		p.quit = make(chan struct{})
-		go h.poll(p.quit)
+		ticks, stop := h.ticker()
+		go h.poll(ticks, stop, p.quit)
 	}
 	p.subs[updates] = true
 	return updates, func() {
@@ -60,8 +61,7 @@ func (h *Handler) publish(idx *index) {
 // poll scans once on each tick and publishes the snapshot, also an unchanged
 // one: each connection then checks the git key and the viewed file, which the
 // scan does not see.
-func (h *Handler) poll(quit <-chan struct{}) {
-	ticks, stop := h.ticker()
+func (h *Handler) poll(ticks <-chan time.Time, stop func(), quit <-chan struct{}) {
 	defer stop()
 	for {
 		select {
