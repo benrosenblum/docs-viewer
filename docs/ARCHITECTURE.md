@@ -142,11 +142,13 @@ The page opens an event stream at `/_/events?path=<repository path>`
 (Server-Sent Events).
 
 1. The handler sends a `hello` event with the current version.
-2. Each 500 ms, the handler calculates two values for the connection: the
-   **tree state** and the **page state**.
-3. When a value is different, the handler sends a `change` event. The
+2. Each 500 ms, one poll loop scans the vaults and publishes the snapshot
+   to all connections.
+3. For each connection, the handler calculates two values from the
+   snapshot: the **tree state** and the **page state**.
+4. When a value is different, the handler sends a `change` event. The
    event says which of the two changed.
-4. The page gets its URL again and replaces the changed parts. It keeps
+5. The page gets its URL again and replaces the changed parts. It keeps
    the scroll position. It always replaces the tab title and the branch
    in the header, because a branch change can leave the page state as it
    is.
@@ -168,8 +170,38 @@ Each 15 seconds, the handler sends a comment line, so that the connection
 stays open. When the connection breaks, the browser connects again. If the
 version in the new `hello` event is different, the page updates.
 
-The poll does no work when no page is open. Each open page costs one walk
-of the vaults for each 500 ms.
+### Cost of the poll
+
+The poll does no work when no page is open. The first connection starts
+the poll loop, and the last connection stops it. The loop does one scan
+for each tick, for any number of open pages. For each tick, a connection
+only reads the git key and does a stat of the open file. The hash of the
+HTML is calculated one time, when the note renders.
+
+A page request also does a scan, so that it never shows an old snapshot.
+
+The scan gets the size and the time of an entry from the directory read of
+`os.Root`. It does not do a stat through `os.Root`, because that opens each
+directory of the path. A link is the exception: the scan must follow the
+link inside the root.
+
+We measured the CPU of the process on a vault of 758 files and 457
+directories, with a git repository, on an Apple M5. 100% is one core. Each
+measurement is 10 seconds of `ps` CPU time.
+
+| Open connections | One scan for each connection | One poll loop | One poll loop and the cheap scan |
+|------------------|------------------------------|---------------|----------------------------------|
+| 0 | 0% | 0% | 0% |
+| 1 | 11-22% | 16-17% | 6-9% |
+| 6 | 296-409% | 15-20% | 7-10% |
+
+The cost of concurrent scans grew faster than the number of connections,
+because the scans contended in the kernel.
+
+The viewer does not use file system events (`fsnotify`). The poll is
+sufficient at this cost, and events would add a dependency. On macOS,
+`fsnotify` keeps one open file for each watched file and directory. A slow
+poll would also stay necessary, because events can be lost.
 
 ## Security
 
@@ -376,7 +408,7 @@ Do not use `go run` for `start`: its binary is temporary.
 
 | Test file | Subject |
 |-----------|---------|
-| `docsview/docsview_test.go` | The routes, the excluded paths, wikilink resolution, search, the graph, the labels of notes with the same name, the live reload events, and themes. |
+| `docsview/docsview_test.go` | The routes, the excluded paths, wikilink resolution, search, the graph, the labels of notes with the same name, the live reload events, the shared poll loop, the links in a scan, and themes. |
 | `docsview/apispec_test.go` | The spec vault. |
 | `docsview/git_test.go`, `diffpage_test.go`, `diffview_test.go` | Git access and the diff pages. |
 | `docsview/markdown` | The renderer, and `TestRealDocs`, which renders each document in `docs/`. |
