@@ -127,6 +127,7 @@ type entry struct {
 // vault directories in configuration order. The returned version changes
 // with any file addition, removal, size change, or modification time change.
 func (h *Handler) scan() (*entry, map[string]*entry, string, error) {
+	h.scans.Add(1)
 	root := &entry{path: ".", name: h.name, dir: true}
 	entries := map[string]*entry{}
 	hash := sha256.New()
@@ -200,6 +201,7 @@ type note struct {
 	src        []byte
 	headings   []markdown.Heading
 	doc        *markdown.Document
+	hash       string // Of the rendered HTML.
 }
 
 // index is an immutable snapshot of the vault. Every vault note is rendered
@@ -262,6 +264,8 @@ func (h *Handler) current() (*index, error) {
 			doc = &markdown.Document{HTML: "<p class=\"render-error\">" + escapeText(err.Error()) + "</p>"}
 		}
 		n.doc = doc
+		sum := sha256.Sum256([]byte(doc.HTML))
+		n.hash = hex.EncodeToString(sum[:8])
 	}
 	idx.outside = slices.Sorted(maps.Keys(r.outside))
 	idx.version = scanned + outsideVersion(idx.outside, func(p string) string { return r.outside[p] })

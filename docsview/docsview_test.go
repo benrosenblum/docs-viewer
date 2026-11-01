@@ -3,12 +3,14 @@ package docsview
 import (
 	"bufio"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -415,6 +417,98 @@ func TestLiveReloadEvents(t *testing.T) {
 	ticks <- time.Time{}
 	if name, data := next(); name != "change" || data["tree"] != true || data["page"] != false {
 		t.Fatalf("file outside the vault and view: %s %v", name, data)
+	}
+}
+
+// TestSharedPollLoop checks that N connections do one scan for each tick, and
+// that the loop ends with the last connection and starts again with the next.
+func TestSharedPollLoop(t *testing.T) {
+	h, repo := fixture(t, sample)
+	ticks := make(chan time.Time)
+	var started atomic.Int64
+	stopped := make(chan bool, 4)
+	h.ticker = func() (<-chan time.Time, func()) {
+		started.Add(1)
+		return ticks, func() { stopped <- true }
+	}
+	server := httptest.NewServer(h)
+	defer server.Close()
+	connect := func() (*http.Response, *bufio.Reader) {
+		t.Helper()
+		response, err := http.Get(server.URL + "/_/events?path=docs/ref/plan.md")
+		if err != nil {
+			t.Fatal(err)
+		}
+		events := bufio.NewReader(response.Body)
+		awaitEvent(t, events, "hello")
+		return response, events
+	}
+	const connections = 3
+	var responses []*http.Response
+	var streams []*bufio.Reader
+	for range connections {
+		response, events := connect()
+		defer response.Body.Close()
+		responses, streams = append(responses, response), append(streams, events)
+	}
+	before := h.scans.Load()
+	for i := range 3 {
+		write(t, filepath.Join(repo, "docs/ref/plan.md"), fmt.Sprintf("# Plan\n\nEdit %d\n", i))
+		ticks <- time.Time{}
+		for _, events := range streams {
+			awaitEvent(t, events, "change")
+		}
+		if scans := h.scans.Load() - before; scans != int64(i+1) {
+			t.Fatalf("%d ticks with %d connections did %d scans", i+1, connections, scans)
+		}
+	}
+	if loops := started.Load(); loops != 1 {
+		t.Fatalf("%d connections started %d loops", connections, loops)
+	}
+	for _, response := range responses[1:] {
+		response.Body.Close()
+	}
+	select {
+	case <-stopped:
+		t.Fatal("the loop stopped with a connection open")
+	case ticks <- time.Time{}: // Accepted: the loop still runs.
+	}
+	responses[0].Body.Close()
+	select {
+	case <-stopped:
+	case <-time.After(10 * time.Second):
+		t.Fatal("the loop runs after the last connection closed")
+	}
+	scans := h.scans.Load()
+	select {
+	case ticks <- time.Time{}:
+		t.Fatal("a stopped loop took a tick")
+	case <-time.After(50 * time.Millisecond):
+	}
+	if now := h.scans.Load(); now != scans {
+		t.Fatalf("%d scans with no connection", now-scans)
+	}
+	response, _ := connect()
+	defer response.Body.Close()
+	if loops := started.Load(); loops != 2 {
+		t.Fatalf("after a restart: %d loops, want 2", loops)
+	}
+}
+
+// awaitEvent reads the stream up to the named event.
+func awaitEvent(t *testing.T, events *bufio.Reader, name string) {
+	t.Helper()
+	for {
+		line, err := events.ReadString('\n')
+		if err != nil {
+			t.Fatalf("waiting for %s: %v", name, err)
+		}
+		if got, ok := strings.CutPrefix(strings.TrimSpace(line), "event: "); ok {
+			if got != name {
+				t.Fatalf("event %s, want %s", got, name)
+			}
+			return
+		}
 	}
 }
 

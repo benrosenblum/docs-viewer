@@ -18,6 +18,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/benrosenblum/docs-viewer/docsview/markdown"
@@ -45,7 +46,7 @@ type Config struct {
 	// .css and .woff2 files below its directory are served, so the
 	// stylesheet can import the files next to it.
 	Theme string
-	// Poll is the live-reload check interval. Zero selects 500 ms.
+	// Poll is the interval of the live-reload poll loop. Zero selects 500 ms.
 	Poll time.Duration
 	// SpecVault is the vault of OpenAPI specs, or "". Its YAML files render
 	// as API reference pages.
@@ -68,6 +69,8 @@ type Handler struct {
 	ticker       func() (<-chan time.Time, func())
 	git          *gitRepo // Nil when git is unavailable; see gitErr.
 	gitErr       error
+	poller       poller
+	scans        atomic.Int64
 
 	mu       sync.Mutex
 	idx      *index
@@ -149,6 +152,7 @@ func New(config Config) (*Handler, error) {
 			t := time.NewTicker(poll)
 			return t.C, t.Stop
 		},
+		poller:   poller{subs: map[chan *index]bool{}},
 		headings: headingCache{entries: map[string]cachedHeadings{}},
 	}
 	h.git, h.gitErr = openGit(rootPath)
