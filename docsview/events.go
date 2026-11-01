@@ -43,8 +43,9 @@ func (h *Handler) subscribe() (<-chan *index, func()) {
 	}
 }
 
-// poll scans once on each tick and publishes the snapshot. A subscriber that
-// is busy misses the result and gets the next one.
+// poll scans once on each tick and publishes the snapshot, also an unchanged
+// one: each connection then checks the git key and the viewed file, which the
+// scan does not see. A subscriber that is busy gets the next result.
 func (h *Handler) poll(quit <-chan struct{}) {
 	ticks, stop := h.ticker()
 	defer stop()

@@ -189,8 +189,8 @@ We measured the CPU of the process on a vault of 758 files and 457
 directories, with a git repository, on an Apple M5. 100% is one core. Each
 measurement is 10 seconds of `ps` CPU time.
 
-| Open connections | One scan for each connection | One poll loop | One poll loop and the cheap scan |
-|------------------|------------------------------|---------------|----------------------------------|
+| Connections | v0.6.0 | One loop | One loop, cheap scan |
+|-------------|--------|----------|----------------------|
 | 0 | 0% | 0% | 0% |
 | 1 | 11-22% | 16-17% | 6-9% |
 | 6 | 296-409% | 15-20% | 7-10% |
