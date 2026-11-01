@@ -406,9 +406,9 @@ change also updates the branch in the header and in the tab title.
 
 ```mermaid
 flowchart TD
-    Tick["Each 500 ms,<br/>for each open page"]
-    Tick --> Scan["Scan the vaults:<br/>vault version"]
-    Tick --> Key["Stat HEAD, index, and<br/>logs/HEAD: git key"]
+    Tick["Each 500 ms,<br/>one poll loop"]
+    Tick --> Scan["Scan the vaults, one time<br/>for all pages: vault version"]
+    Tick --> Key["For each open page, stat HEAD,<br/>index, and logs/HEAD: git key"]
     Scan --> Changed{"Version or<br/>key changed?"}
     Key --> Changed
     Changed -->|no| Cache["Cached git state"]

@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -415,6 +416,145 @@ func TestLiveReloadEvents(t *testing.T) {
 	ticks <- time.Time{}
 	if name, data := next(); name != "change" || data["tree"] != true || data["page"] != false {
 		t.Fatalf("file outside the vault and view: %s %v", name, data)
+	}
+}
+
+// TestScanLinks checks that a scan follows a link to a file, so that the
+// version changes with the target, and that it lists no linked directory.
+func TestScanLinks(t *testing.T) {
+	h, repo := fixture(t, sample)
+	for link, target := range map[string]string{"docs/notes.md": "../api/notes.md", "docs/folder": "ref", "docs/escape.md": filepath.Join(filepath.Dir(repo), "outside.md")} {
+		if err := os.Symlink(target, filepath.Join(repo, link)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	idx, err := h.current()
+	if err != nil {
+		t.Fatal(err)
+	}
+	e := idx.entries["docs/notes.md"]
+	if e == nil || e.dir || e.size != int64(len(sample["api/notes.md"])) {
+		t.Fatalf("link to a file: %+v", e)
+	}
+	for _, p := range []string{"docs/folder", "docs/folder/plan.md", "docs/escape.md"} {
+		if idx.entries[p] != nil {
+			t.Errorf("scan lists %s", p)
+		}
+	}
+	write(t, filepath.Join(repo, "api/notes.md"), "# API notes, edited\n")
+	next, err := h.current()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if next.version == idx.version {
+		t.Fatal("the version did not change with the target of a link")
+	}
+}
+
+// TestSharedPollLoop checks that N connections do one scan for each tick, and
+// that the loop ends with the last connection and starts again with the next.
+func TestSharedPollLoop(t *testing.T) {
+	h, repo := fixture(t, sample)
+	ticks := make(chan time.Time)
+	var started atomic.Int64
+	stopped := make(chan bool, 4)
+	h.ticker = func() (<-chan time.Time, func()) {
+		started.Add(1)
+		return ticks, func() { stopped <- true }
+	}
+	server := httptest.NewServer(h)
+	defer server.Close()
+	connect := func() (*http.Response, *bufio.Reader) {
+		t.Helper()
+		response, err := http.Get(server.URL + "/_/events?path=docs/ref/plan.md")
+		if err != nil {
+			t.Fatal(err)
+		}
+		events := bufio.NewReader(response.Body)
+		awaitEvent(t, events, "hello")
+		return response, events
+	}
+	const connections = 3
+	var responses []*http.Response
+	var streams []*bufio.Reader
+	for range connections {
+		response, events := connect()
+		defer response.Body.Close()
+		responses, streams = append(responses, response), append(streams, events)
+	}
+	before := h.scans.Load()
+	for i := range 3 {
+		// Each size is new, for a file system with coarse timestamps.
+		write(t, filepath.Join(repo, "docs/ref/plan.md"), "# Plan\n\n"+strings.Repeat("Edit\n", i+1))
+		ticks <- time.Time{}
+		for _, events := range streams {
+			awaitEvent(t, events, "change")
+		}
+		if scans := h.scans.Load() - before; scans != int64(i+1) {
+			t.Fatalf("%d ticks with %d connections did %d scans", i+1, connections, scans)
+		}
+	}
+	if loops := started.Load(); loops != 1 {
+		t.Fatalf("%d connections started %d loops", connections, loops)
+	}
+	for _, response := range responses[1:] {
+		response.Body.Close()
+	}
+	select {
+	case <-stopped:
+		t.Fatal("the loop stopped with a connection open")
+	case ticks <- time.Time{}: // Accepted: the loop still runs.
+	}
+	responses[0].Body.Close()
+	select {
+	case <-stopped:
+	case <-time.After(10 * time.Second):
+		t.Fatal("the loop runs after the last connection closed")
+	}
+	scans := h.scans.Load()
+	select {
+	case ticks <- time.Time{}:
+		t.Fatal("a stopped loop took a tick")
+	case <-time.After(50 * time.Millisecond):
+	}
+	if now := h.scans.Load(); now != scans {
+		t.Fatalf("%d scans with no connection", now-scans)
+	}
+	response, _ := connect()
+	defer response.Body.Close()
+	if loops := started.Load(); loops != 2 {
+		t.Fatalf("after a restart: %d loops, want 2", loops)
+	}
+}
+
+// TestPublishKeepsNewest checks that a busy subscriber gets the last snapshot.
+func TestPublishKeepsNewest(t *testing.T) {
+	h, _ := fixture(t, sample)
+	h.ticker = func() (<-chan time.Time, func()) { return nil, func() {} }
+	updates, unsubscribe := h.subscribe()
+	defer unsubscribe()
+	older, newer := &index{}, &index{}
+	h.publish(older)
+	h.publish(newer)
+	if got := <-updates; got != newer {
+		t.Fatal("the subscriber got the older snapshot")
+	}
+}
+
+// awaitEvent reads the stream up to the named event.
+func awaitEvent(t *testing.T, events *bufio.Reader, name string) {
+	t.Helper()
+	for {
+		line, err := events.ReadString('\n')
+		if err != nil {
+			t.Fatalf("waiting for %s: %v", name, err)
+		}
+		if got, ok := strings.CutPrefix(strings.TrimSpace(line), "event: "); ok {
+			if got != name {
+				t.Fatalf("event %s, want %s", got, name)
+			}
+			return
+		}
 	}
 }
 
