@@ -420,6 +420,38 @@ func TestLiveReloadEvents(t *testing.T) {
 	}
 }
 
+// TestScanLinks checks that a scan follows a link to a file, so that the
+// version changes with the target, and that it lists no linked directory.
+func TestScanLinks(t *testing.T) {
+	h, repo := fixture(t, sample)
+	for link, target := range map[string]string{"docs/notes.md": "../api/notes.md", "docs/folder": "ref", "docs/escape.md": filepath.Join(filepath.Dir(repo), "outside.md")} {
+		if err := os.Symlink(target, filepath.Join(repo, link)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	idx, err := h.current()
+	if err != nil {
+		t.Fatal(err)
+	}
+	e := idx.entries["docs/notes.md"]
+	if e == nil || e.dir || e.size != int64(len(sample["api/notes.md"])) {
+		t.Fatalf("link to a file: %+v", e)
+	}
+	for _, p := range []string{"docs/folder", "docs/folder/plan.md", "docs/escape.md"} {
+		if idx.entries[p] != nil {
+			t.Errorf("scan lists %s", p)
+		}
+	}
+	write(t, filepath.Join(repo, "api/notes.md"), "# API notes, edited\n")
+	next, err := h.current()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if next.version == idx.version {
+		t.Fatal("the version did not change with the target of a link")
+	}
+}
+
 // TestSharedPollLoop checks that N connections do one scan for each tick, and
 // that the loop ends with the last connection and starts again with the next.
 func TestSharedPollLoop(t *testing.T) {

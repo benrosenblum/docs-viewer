@@ -156,17 +156,24 @@ func (h *Handler) walk(vault string, entries map[string]*entry, hash io.Writer) 
 		if p == vault {
 			return nil
 		}
-		if !allowed(p) || d.Type()&fs.ModeSymlink != 0 && !h.visible(p) {
+		link := d.Type()&fs.ModeSymlink != 0
+		if !allowed(p) || link && !h.visible(p) {
 			if d.IsDir() {
 				return fs.SkipDir
 			}
 			return nil
 		}
-		info, err := fs.Stat(fsys, p) // Follows links that stay inside the root.
+		// The directory read of a root already holds this information. A stat
+		// through the root opens each directory of the path, so only a link
+		// does it, to follow the link inside the root.
+		info, err := d.Info()
+		if link {
+			info, err = fs.Stat(fsys, p)
+		}
 		if err != nil {
 			return nil
 		}
-		if d.Type()&fs.ModeSymlink != 0 && info.IsDir() {
+		if link && info.IsDir() {
 			return nil // Avoid link cycles; linked directories are not listed.
 		}
 		if !info.IsDir() && !info.Mode().IsRegular() {
